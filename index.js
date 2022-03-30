@@ -3,14 +3,14 @@
 // Relies on the fact that integer Object keys are kept sorted,
 // and managed very efficiently by V8.
 
-const maybeReq = (mod, fallback) => {
+const maybeReqPerfHooks = (fallback) => {
   try {
-    return require(mod)
+    return require('perf_hooks').performance
   } catch (e) {
     return fallback
   }
 }
-const {performance: {now}} = maybeReq('perf_hooks', { performance: Date })
+const {now} = maybeReqPerfHooks(Date)
 const isPosInt = n => n && n === Math.floor(n) && n > 0 && isFinite(n)
 
 class TTLCache {
@@ -43,15 +43,20 @@ class TTLCache {
     }
     const current = this.expirationMap.get(key)
     if (current !== undefined) {
+      const oldValue = this.data.get(key)
       if (noUpdateTTL) {
-        const oldValue = this.data.get(key)
-        this.data.set(key, val)
-        if (!noDisposeOnSet) {
-          this.dispose(oldValue, key, 'set')
+        if (oldValue !== val) {
+          this.data.set(key, val)
+          if (!noDisposeOnSet) {
+            this.dispose(oldValue, key, 'set')
+          }
         }
         return this
       } else {
-        this.delete(key, { reason: 'set', noDispose: noDisposeOnSet })
+        this.delete(key, {
+          reason: 'set',
+          noDispose: noDisposeOnSet || oldValue === val,
+        })
       }
     }
     const expiration = Math.ceil(now() + ttl)
@@ -59,6 +64,7 @@ class TTLCache {
     this.data.set(key, val)
     if (!this.expirations[expiration]) {
       const t = setTimeout(() => this.purgeStale(), ttl)
+      /* istanbul ignore else - affordance for non-node envs */
       if (t.unref) t.unref()
       this.expirations[expiration] = []
     }
@@ -91,8 +97,9 @@ class TTLCache {
   delete (key, { reason = 'delete', noDispose = false } = {}) {
     const current = this.expirationMap.get(key)
     if (current !== undefined) {
-      this.data.delete(key)
       const value = this.data.get(key)
+      this.data.delete(key)
+      this.expirationMap.delete(key)
       const exp = this.expirations[current]
       if (exp.length === 1) {
         delete this.expirations[current]
@@ -111,6 +118,7 @@ class TTLCache {
     for (const exp in this.expirations) {
       const keys = this.expirations[exp]
       if (this.size - keys.length >= this.max) {
+        console.error('gte max')
         for (const key of keys) {
           const val = this.data.get(key)
           this.data.delete(key)
@@ -119,9 +127,9 @@ class TTLCache {
         }
         delete this.expirations[exp]
       } else {
-        const s = this.max - this.size
-        const del = this.expirations.splice(0, s)
-        for (const key of del) {
+        const s = this.size - this.max
+        console.error('not gte max', s, keys, this.max, this.size)
+        for (const key of keys.splice(0, s)) {
           const val = this.data.get(key)
           this.data.delete(key)
           this.expirationMap.delete(key)
@@ -137,7 +145,11 @@ class TTLCache {
   }
 
   purgeStale () {
+    const n = now()
     for (const exp in this.expirations) {
+      if (exp > n) {
+        return
+      }
       for (const key of this.expirations[exp]) {
         const val = this.data.get(key)
         this.data.delete(key)
@@ -151,27 +163,21 @@ class TTLCache {
   *entries () {
     for (const exp in this.expirations) {
       for (const key of this.expirations[exp]) {
-        if (this.data.has(key)) {
-          yield [key, this.data.get(key)]
-        }
+        yield [key, this.data.get(key)]
       }
     }
   }
   *keys () {
     for (const exp in this.expirations) {
       for (const key of this.expirations[exp]) {
-        if (this.data.has(key)) {
-          yield key
-        }
+        yield key
       }
     }
   }
   *values () {
     for (const exp in this.expirations) {
       for (const key of this.expirations[exp]) {
-        if (this.data.has(key)) {
-          yield this.data.get(key)
-        }
+        yield this.data.get(key)
       }
     }
   }
