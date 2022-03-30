@@ -1,0 +1,31 @@
+{
+  "name": "ttlcache",
+  "version": "0.0.0",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "description": "The time-based use-recency-unaware cousin of [`lru-cache`](http://npm.im/lru-cache)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/isaacs/ttlcache"
+  },
+  "author": "Isaac Z. Schlueter <i@izs.me> (https://izs.me)",
+  "license": "ISC",
+  "scripts": {
+    "test": "tap",
+    "snap": "tap",
+    "preversion": "npm test",
+    "postversion": "npm publish",
+    "prepublishOnly": "git push origin --follow-tags"
+  },
+  "devDependencies": {
+    "tap": "^16.0.1"
+  },
+  "engines": {
+    "node": ">=12"
+  }
+}
