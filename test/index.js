@@ -123,3 +123,21 @@ t.test('iterators', async t => {
   t.same([...c.values()], [0, 2, 4])
   t.same([...c.keys()], [0, 1, 2])
 })
+
+t.test('clear', async t => {
+  const disposals = []
+  const dispose = (...a) => disposals.push(a)
+  const c = new TTL({ttl:10, dispose})
+  for (let i = 0; i < 3; i++) {
+    c.set(i, i * 2)
+  }
+  c.clear()
+  t.same(disposals, [[0, 0, 'delete'], [2, 1, 'delete'], [4, 2, 'delete']])
+  delete c.dispose
+  disposals.length = 0
+  for (let i = 0; i < 3; i++) {
+    c.set(i, i * 2)
+  }
+  c.clear()
+  t.same(disposals, [])
+})

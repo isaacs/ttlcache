@@ -37,6 +37,16 @@ class TTLCache {
     }
   }
 
+  clear () {
+    const entries = this.dispose !== TTLCache.prototype.dispose ? [...this] : []
+    this.data.clear()
+    this.expirationMap.clear()
+    this.expirations = Object.create(null)
+    for (const [key, val] of entries) {
+      this.dispose(val, key, 'delete')
+    }
+  }
+
   set (key, val, { ttl = this.ttl, noUpdateTTL = this.noUpdateTTL, noDisposeOnSet = this.noDisposeOnSet } = {}) {
     if (!isPosInt(ttl)) {
       throw new TypeError('ttl must be positive integer')

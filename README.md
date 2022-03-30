@@ -102,6 +102,10 @@ Return true if the item is in the cache.
 
 Remove an item from the cache.
 
+### `cache.clear()`
+
+Delete all items from the cache.
+
 ### `cache.entries()`
 
 Return an iterator that walks through each `[key, value]` from soonest
