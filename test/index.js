@@ -141,3 +141,15 @@ t.test('clear', async t => {
   c.clear()
   t.same(disposals, [])
 })
+
+t.test('update TTL, multiple same expiration', async t => {
+  const c = new TTL({ttl: 10})
+  for (let i = 0; i < 10; i++) {
+    c.set(i, i * 2)
+  }
+  clock.advance(5)
+  c.set(5, 500)
+  for (let i = 0; i < 10; i++) {
+    t.equal(c.getRemainingTTL(i), i === 5 ? 10 : 5)
+  }
+})

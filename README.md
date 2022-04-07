@@ -61,11 +61,22 @@ Create a new `TTLCache` object.
   retrieved?  Defaults to `false`.  Overridable on the `get()` method.
 * `noUpdateTTL` Should setting a new value for an existing key leave the
   TTL unchanged?  Defaults to `false`.  Overridable on the `set()` method.
+  (Note that TTL is _always_ updated if the item is expired, since that is
+  treated as a new `set()` and the old item is no longer relevant.)
 * `dispose` Method called with `(value, key, reason)` when an item is
   removed from the cache.  Called once item is fully removed from cache.
   It is safe to re-add at this point, but note that adding when `reason` is
   `'set'` can result in infinite recursion if `noDisponseOnSet` is not
   specified.
+
+    Disposal reasons:
+
+    * `'stale'` TTL expired.
+    * `'set'` Overwritten with a new different value.
+    * `'evict'` Removed from the cache to stay within capacity limit.
+    * `'delete'` Explicitly deleted with `cache.delete()` or
+      `cache.clear()`
+
 * `noDisposeOnSet` Do not call `dispose()` method when overwriting a key
   with a new value.  Defaults to `false`.  Overridable on `set()` method.
 
@@ -113,7 +124,8 @@ Delete all items from the cache.
 ### `cache.entries()`
 
 Return an iterator that walks through each `[key, value]` from soonest
-expiring to latest expiring.
+expiring to latest expiring.  (Items expiring at the same time are walked
+in insertion order.)
 
 Default iteration method for the cache object.
 
@@ -150,3 +162,29 @@ automatically.
 
 Called when an item is removed from the cache and should be disposed.  Set
 this on the constructor options.
+
+## Algorithm
+
+The cache uses two `Map` objects.  The first maps item keys to their
+expiration time, and the second maps item keys to their values.  Then, a
+null-prototype object uses the expiration time as keys, with the value
+being an array of all the keys expiring at that time.
+
+This leverages a few important features of modern JavaScript engines for
+fairly good performance:
+
+- `Map` objects are highly optimized for referring to arbitrary values by
+  arbitrary keys.
+- Objects with solely integer-numeric keys are iterated in sorted numeric
+  order rather than insertion order, and insertions in the middle of the
+  key ordering are still very fast.  This is true of all modern JS engines
+  tested at the time of this module's creation, but most particularly V8
+  (the engine in Node.js).
+
+When it is time to prune, we can always walk the null-prototype object in
+iteration order, deleting items until we come to the first key greater than
+the current time.
+
+Thus, the `start` time doesn't need to be tracked, only the expiration
+time.  When an item age is updated (either explicitly on `get()`, or by
+setting to a new value), it is deleted and re-inserted.

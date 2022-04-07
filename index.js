@@ -52,9 +52,11 @@ class TTLCache {
       throw new TypeError('ttl must be positive integer')
     }
     const current = this.expirationMap.get(key)
+    const time = now()
+    const oldValue = current === undefined ? undefined : this.data.get(key)
     if (current !== undefined) {
-      const oldValue = this.data.get(key)
-      if (noUpdateTTL) {
+      // we aren't updating the ttl, so just set the data
+      if (noUpdateTTL && current > time) {
         if (oldValue !== val) {
           this.data.set(key, val)
           if (!noDisposeOnSet) {
@@ -63,13 +65,17 @@ class TTLCache {
         }
         return this
       } else {
-        this.delete(key, {
-          reason: 'set',
-          noDispose: noDisposeOnSet || oldValue === val,
-        })
+        // just delete from expirations list, since we're about to
+        // add to data and expirationsMap anyway
+        const exp = this.expirations[current]
+        if (!exp || exp.length <= 1) {
+          delete this.expirations[current]
+        } else {
+          this.expirations[current] = exp.filter(k => k !== key)
+        }
       }
     }
-    const expiration = Math.ceil(now() + ttl)
+    const expiration = Math.ceil(time + ttl)
     this.expirationMap.set(key, expiration)
     this.data.set(key, val)
     if (!this.expirations[expiration]) {
@@ -79,8 +85,13 @@ class TTLCache {
       this.expirations[expiration] = []
     }
     this.expirations[expiration].push(key)
+
     while (this.size > this.max) {
       this.purgeToCapacity()
+    }
+
+    if (!noDisposeOnSet && current && oldValue !== val) {
+      this.dispose(oldValue, key, 'set')
     }
     return this
   }
@@ -104,21 +115,19 @@ class TTLCache {
 
   dispose (value, key) {}
 
-  delete (key, { reason = 'delete', noDispose = false } = {}) {
+  delete (key) {
     const current = this.expirationMap.get(key)
     if (current !== undefined) {
       const value = this.data.get(key)
       this.data.delete(key)
       this.expirationMap.delete(key)
       const exp = this.expirations[current]
-      if (exp.length === 1) {
+      if (exp && exp.length <= 1) {
         delete this.expirations[current]
       } else {
         this.expirations[current] = exp.filter(k => k !== key)
       }
-      if (!noDispose) {
-        this.dispose(value, key, reason)
-      }
+      this.dispose(value, key, 'delete')
       return true
     }
     return false
