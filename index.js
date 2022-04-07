@@ -128,7 +128,6 @@ class TTLCache {
     for (const exp in this.expirations) {
       const keys = this.expirations[exp]
       if (this.size - keys.length >= this.max) {
-        console.error('gte max')
         for (const key of keys) {
           const val = this.data.get(key)
           this.data.delete(key)
@@ -138,7 +137,6 @@ class TTLCache {
         delete this.expirations[exp]
       } else {
         const s = this.size - this.max
-        console.error('not gte max', s, keys, this.max, this.size)
         for (const key of keys.splice(0, s)) {
           const val = this.data.get(key)
           this.data.delete(key)
