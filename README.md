@@ -46,7 +46,7 @@ cache.has(1) // returns false
 
 ## API
 
-### `const TTLCache = require('@isaacs/ttlcache')` or `import TTLCache from '@isaacs/ttlcache'
+### `const TTLCache = require('@isaacs/ttlcache')` or `import TTLCache from '@isaacs/ttlcache'`
 
 Default export is the `TTLCache` class.
 
