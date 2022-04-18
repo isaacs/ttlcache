@@ -29,6 +29,8 @@ class TTLCache {
     }
     this.ttl = ttl
     this.max = max
+    this.updateAgeOnGet = updateAgeOnGet;
+    this.noUpdateTTL = noUpdateTTL;
     if (dispose !== undefined) {
       if (typeof dispose !== 'function') {
         throw new TypeError('dispose must be function if set')

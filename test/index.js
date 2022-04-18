@@ -27,6 +27,30 @@ t.test('basic operation', async t => {
   t.equal(c.get(1), undefined)
 })
 
+t.test('constructor - updateAgeOnGet', async t => {
+  const c = new TTL({ttl: 1000, updateAgeOnGet: true})
+  c.set(1, 2)
+
+  t.equal(c.getRemainingTTL(1), 1000)
+  clock.advance(5)
+  t.equal(c.getRemainingTTL(1), 995)
+
+  c.get(1) // Should reset timer
+  t.equal(c.getRemainingTTL(1), 1000)
+})
+
+t.test('constructor - noUpdateTTL', async t => {
+  const c = new TTL({ttl: 1000, noUpdateTTL: true})
+  c.set(1, 2)
+
+  t.equal(c.getRemainingTTL(1), 1000)
+  clock.advance(5)
+  t.equal(c.getRemainingTTL(1), 995)
+
+  c.set(1, 3) // Should not update timer
+  t.equal(c.getRemainingTTL(1), 995)
+})
+
 t.test('bad values', async t => {
   t.throws(() => new TTL({max: -1}))
   t.throws(() => new TTL({ttl: -1}))
