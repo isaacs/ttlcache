@@ -167,6 +167,9 @@ class TTLCache {
     const n = now()
     for (const exp in this.expirations) {
       if (exp > n) {
+        const t = setTimeout(() => this.purgeStale(), Math.ceil(exp - n))
+        /* istanbul ignore else - affordance for non-node envs */
+        if (t.unref) t.unref()
         return
       }
       for (const key of this.expirations[exp]) {
