@@ -3,18 +3,24 @@
 // Relies on the fact that integer Object keys are kept sorted,
 // and managed very efficiently by V8.
 
-const maybeReqPerfHooks = (fallback) => {
+const maybeReqPerfHooks = fallback => {
   try {
     return require('perf_hooks').performance
   } catch (e) {
     return fallback
   }
 }
-const {now} = maybeReqPerfHooks(Date)
+const { now } = maybeReqPerfHooks(Date)
 const isPosInt = n => n && n === Math.floor(n) && n > 0 && isFinite(n)
 
 class TTLCache {
-  constructor ({ max = Infinity, ttl, updateAgeOnGet = false, noUpdateTTL = false, dispose }) {
+  constructor({
+    max = Infinity,
+    ttl,
+    updateAgeOnGet = false,
+    noUpdateTTL = false,
+    dispose,
+  }) {
     // {[expirationTime]: [keys]}
     this.expirations = Object.create(null)
     // {key=>val}
@@ -29,8 +35,8 @@ class TTLCache {
     }
     this.ttl = ttl
     this.max = max
-    this.updateAgeOnGet = updateAgeOnGet;
-    this.noUpdateTTL = noUpdateTTL;
+    this.updateAgeOnGet = updateAgeOnGet
+    this.noUpdateTTL = noUpdateTTL
     if (dispose !== undefined) {
       if (typeof dispose !== 'function') {
         throw new TypeError('dispose must be function if set')
@@ -39,8 +45,9 @@ class TTLCache {
     }
   }
 
-  clear () {
-    const entries = this.dispose !== TTLCache.prototype.dispose ? [...this] : []
+  clear() {
+    const entries =
+      this.dispose !== TTLCache.prototype.dispose ? [...this] : []
     this.data.clear()
     this.expirationMap.clear()
     this.expirations = Object.create(null)
@@ -49,13 +56,22 @@ class TTLCache {
     }
   }
 
-  set (key, val, { ttl = this.ttl, noUpdateTTL = this.noUpdateTTL, noDisposeOnSet = this.noDisposeOnSet } = {}) {
+  set(
+    key,
+    val,
+    {
+      ttl = this.ttl,
+      noUpdateTTL = this.noUpdateTTL,
+      noDisposeOnSet = this.noDisposeOnSet,
+    } = {}
+  ) {
     if (!isPosInt(ttl)) {
       throw new TypeError('ttl must be positive integer')
     }
     const current = this.expirationMap.get(key)
     const time = now()
-    const oldValue = current === undefined ? undefined : this.data.get(key)
+    const oldValue =
+      current === undefined ? undefined : this.data.get(key)
     if (current !== undefined) {
       // we aren't updating the ttl, so just set the data
       if (noUpdateTTL && current > time) {
@@ -98,26 +114,35 @@ class TTLCache {
     return this
   }
 
-  has (key) {
+  has(key) {
     return this.data.has(key)
   }
 
-  getRemainingTTL (key) {
+  getRemainingTTL(key) {
     const expiration = this.expirationMap.get(key)
-    return expiration !== undefined ? Math.max(0, expiration - now()) : 0
+    return expiration !== undefined
+      ? Math.max(0, expiration - now())
+      : 0
   }
 
-  get (key, { updateAgeOnGet = this.updateAgeOnGet, ttl = this.ttl } = {}) {
+  get(
+    key,
+    { updateAgeOnGet = this.updateAgeOnGet, ttl = this.ttl } = {}
+  ) {
     const val = this.data.get(key)
     if (updateAgeOnGet) {
-      this.set(key, val, { noUpdateTTL: false, noDisposeOnSet: true, ttl })
+      this.set(key, val, {
+        noUpdateTTL: false,
+        noDisposeOnSet: true,
+        ttl,
+      })
     }
     return val
   }
 
-  dispose (value, key) {}
+  dispose(_, __) {}
 
-  delete (key) {
+  delete(key) {
     const current = this.expirationMap.get(key)
     if (current !== undefined) {
       const value = this.data.get(key)
@@ -135,7 +160,7 @@ class TTLCache {
     return false
   }
 
-  purgeToCapacity () {
+  purgeToCapacity() {
     for (const exp in this.expirations) {
       const keys = this.expirations[exp]
       if (this.size - keys.length >= this.max) {
@@ -159,11 +184,11 @@ class TTLCache {
     }
   }
 
-  get size () {
+  get size() {
     return this.data.size
   }
 
-  purgeStale () {
+  purgeStale() {
     const n = now()
     for (const exp in this.expirations) {
       if (exp > n) {
@@ -179,28 +204,28 @@ class TTLCache {
     }
   }
 
-  *entries () {
+  *entries() {
     for (const exp in this.expirations) {
       for (const key of this.expirations[exp]) {
         yield [key, this.data.get(key)]
       }
     }
   }
-  *keys () {
+  *keys() {
     for (const exp in this.expirations) {
       for (const key of this.expirations[exp]) {
         yield key
       }
     }
   }
-  *values () {
+  *values() {
     for (const exp in this.expirations) {
       for (const key of this.expirations[exp]) {
         yield this.data.get(key)
       }
     }
   }
-  [Symbol.iterator] () {
+  [Symbol.iterator]() {
     return this.entries()
   }
 }
