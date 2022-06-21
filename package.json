@@ -2,7 +2,8 @@
   "name": "@isaacs/ttlcache",
   "version": "1.0.4",
   "files": [
-    "index.js"
+    "index.js",
+    "index.d.ts"
   ],
   "main": "index.js",
   "exports": {
