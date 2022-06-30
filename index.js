@@ -56,6 +56,29 @@ class TTLCache {
     }
   }
 
+  setTTL (key, ttl = this.ttl) {
+    const current = this.expirationMap.get(key)
+    if (current !== undefined) {
+      // remove from the expirations list, so it isn't purged
+      const exp = this.expirations[current]
+      if (!exp || exp.length <= 1) {
+        delete this.expirations[current]
+      } else {
+        this.expirations[current] = exp.filter(k => k !== key)
+      }
+    }
+
+    const expiration = Math.floor(now() + ttl)
+    this.expirationMap.set(key, expiration)
+    if (!this.expirations[expiration]) {
+      const t = setTimeout(() => this.purgeStale(), ttl)
+      /* istanbul ignore else - affordance for non-node envs */
+      if (t.unref) t.unref()
+      this.expirations[expiration] = []
+    }
+    this.expirations[expiration].push(key)
+  }
+
   set(
     key,
     val,
@@ -68,49 +91,27 @@ class TTLCache {
     if (!isPosInt(ttl)) {
       throw new TypeError('ttl must be positive integer')
     }
-    const current = this.expirationMap.get(key)
-    const time = now()
-    const oldValue =
-      current === undefined ? undefined : this.data.get(key)
-    if (current !== undefined) {
-      // we aren't updating the ttl, so just set the data
-      if (noUpdateTTL && current > time) {
-        if (oldValue !== val) {
-          this.data.set(key, val)
-          if (!noDisposeOnSet) {
-            this.dispose(oldValue, key, 'set')
-          }
-        }
-        return this
-      } else {
-        // just delete from expirations list, since we're about to
-        // add to data and expirationsMap anyway
-        const exp = this.expirations[current]
-        if (!exp || exp.length <= 1) {
-          delete this.expirations[current]
-        } else {
-          this.expirations[current] = exp.filter(k => k !== key)
+    if (this.expirationMap.has(key)) {
+      if (!noUpdateTTL) {
+        this.setTTL(key, ttl)
+      }
+      // has old value
+      const oldValue = this.data.get(key)
+      if (oldValue !== val) {
+        this.data.set(key, val)
+        if (!noDisposeOnSet) {
+          this.dispose(oldValue, key, 'set')
         }
       }
+    } else {
+      this.setTTL(key, ttl)
+      this.data.set(key, val)
     }
-    const expiration = Math.ceil(time + ttl)
-    this.expirationMap.set(key, expiration)
-    this.data.set(key, val)
-    if (!this.expirations[expiration]) {
-      const t = setTimeout(() => this.purgeStale(), ttl)
-      /* istanbul ignore else - affordance for non-node envs */
-      if (t.unref) t.unref()
-      this.expirations[expiration] = []
-    }
-    this.expirations[expiration].push(key)
 
     while (this.size > this.max) {
       this.purgeToCapacity()
     }
 
-    if (!noDisposeOnSet && current && oldValue !== val) {
-      this.dispose(oldValue, key, 'set')
-    }
     return this
   }
 
@@ -121,7 +122,7 @@ class TTLCache {
   getRemainingTTL(key) {
     const expiration = this.expirationMap.get(key)
     return expiration !== undefined
-      ? Math.max(0, expiration - now())
+      ? Math.max(0, Math.ceil(expiration - now()))
       : 0
   }
 
@@ -131,11 +132,7 @@ class TTLCache {
   ) {
     const val = this.data.get(key)
     if (updateAgeOnGet) {
-      this.set(key, val, {
-        noUpdateTTL: false,
-        noDisposeOnSet: true,
-        ttl,
-      })
+      this.setTTL(key, ttl)
     }
     return val
   }
@@ -189,7 +186,7 @@ class TTLCache {
   }
 
   purgeStale() {
-    const n = now()
+    const n = Math.ceil(now())
     for (const exp in this.expirations) {
       if (exp > n) {
         return

@@ -40,6 +40,9 @@ t.test('constructor - updateAgeOnGet', async t => {
 
   c.get(1) // Should reset timer
   floor(t, c.getRemainingTTL(1), 1000)
+
+  c.get(1, { ttl: 100 })
+  floor(t, c.getRemainingTTL(1), 100)
 })
 
 t.test('constructor - noUpdateTTL', async t => {
@@ -203,4 +206,14 @@ t.test('update TTL, multiple same expiration', async t => {
   for (let i = 0; i < 10; i++) {
     floor(t, c.getRemainingTTL(i), i === 5 ? 10 : 5)
   }
+})
+
+t.test('set ttl explicitly', async t => {
+  const c = new TTL<number, number>({ ttl: 10 })
+  c.set(1, 1)
+  floor(t, c.getRemainingTTL(1), 10, 'starts at default')
+  c.setTTL(1, 1000)
+  floor(t, c.getRemainingTTL(1), 1000, 'set explicitly')
+  c.setTTL(1)
+  floor(t, c.getRemainingTTL(1), 10, 'reset to default')
 })

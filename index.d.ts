@@ -59,6 +59,11 @@ declare class TTLCache<K, V> implements Iterable<[K, V]> {
   public getRemainingTTL(key: K): number
 
   /**
+   * Set the ttl explicitly to a value, defaulting to the TTL set on the ctor
+   */
+  public setTTL(key: K, ttl?: number): void
+
+  /**
    * Return a generator yielding `[key, value]` pairs, from soonest expiring
    * to latest expiring. (Items expiring at the same time are walked in insertion order.)
    */
