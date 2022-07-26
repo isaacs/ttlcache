@@ -104,6 +104,13 @@ If `updateAgeOnGet` is `true`, then re-add the item into the cache with the
 updated `ttl` value.  Both options default to the settings on the
 constructor.
 
+Note that using `updateAgeOnGet` _can_ effectively simulate a
+"least-recently-used" type of algorithm, by repeatedly updating
+the TTL of items as they are used.  However, if you find yourself
+doing this, consider using
+[`lru-cache`](http://npm.im/lru-cache), as it is much more
+optimized for an LRU use case.
+
 ### `cache.getRemainingTTL(key)`
 
 Return the remaining time before an item expires.  Returns `0` if the item
