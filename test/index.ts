@@ -58,7 +58,6 @@ t.test('constructor - noUpdateTTL', async t => {
 })
 
 t.test('bad values', async t => {
-  //@ts-expect-error
   t.throws(() => new TTL({ max: -1 }))
   t.throws(() => new TTL({ ttl: -1 }))
   //@ts-expect-error
@@ -216,4 +215,9 @@ t.test('set ttl explicitly', async t => {
   floor(t, c.getRemainingTTL(1), 1000, 'set explicitly')
   c.setTTL(1)
   floor(t, c.getRemainingTTL(1), 10, 'reset to default')
+})
+
+t.test('ctor ok with no argument', async t => {
+  const c = new TTL<number, number>()
+  t.match(c, { ttl: undefined })
 })

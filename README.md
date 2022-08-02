@@ -54,9 +54,14 @@ Default export is the `TTLCache` class.
 
 Create a new `TTLCache` object.
 
-* `max` The max number of items to keep in the cache.
+* `max` The max number of items to keep in the cache.  Must be
+  positive integer or `Infinity`, defaults to `Infinity` (ie,
+  limited only by TTL, not by item count).
 * `ttl` The max time in ms to store items.  Overridable on the `set()`
-  method.
+  method.  Must be a positive integer or `Infinity` (see note
+  below about immortality hazards).  If `undefined` in
+  constructor, then a TTL _must_ be provided in each `set()`
+  call.
 * `updateAgeOnGet` Should the age of an item be updated when it is
   retrieved?  Defaults to `false`.  Overridable on the `get()` method.
 * `noUpdateTTL` Should setting a new value for an existing key leave the
@@ -195,3 +200,17 @@ the current time.
 Thus, the `start` time doesn't need to be tracked, only the expiration
 time.  When an item age is updated (either explicitly on `get()`, or by
 setting to a new value), it is deleted and re-inserted.
+
+## Immortality Hazards
+
+It is possible to set a TTL of `Infinity`, in which case an item
+will never expire.  As it does not expire, its TTL is not
+tracked, and `getRemainingTTL()` will return `Infinity` for that
+key.
+
+If you do this, then the item will never be purged.  Create
+enough immortal values, and the cache will grow to consume all
+available memory.  If find yourself doing this, it's _probably_
+better to use a different data structure, such as a `Map` or
+plain old object to store values, as it will have better
+performance and the hazards will be more obvious.

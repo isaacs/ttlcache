@@ -4,7 +4,7 @@
 // https://github.com/isaacs/node-lru-cache/blob/v7.10.1/index.d.ts
 
 declare class TTLCache<K, V> implements Iterable<[K, V]> {
-  constructor(options: TTLCache.Options<K, V>)
+  constructor(options?: TTLCache.Options<K, V>)
 
   /**
    * The total number of items held in the cache at the current moment.
@@ -104,9 +104,10 @@ declare namespace TTLCache {
      * by default, and MAY live in the cache, contributing to max,
      * long after they have expired.
      *
-     * Must be an integer number of ms, defaults to 0, which means "no TTL"
+     * Must be an integer number of ms, or Infinity.  Defaults to `undefined`,
+     * meaning that a TTL must be set explicitly for each set()
      */
-    ttl: number
+    ttl?: number
 
     /**
      * Boolean flag to tell the cache to not update the TTL when
@@ -154,13 +155,22 @@ declare namespace TTLCache {
      * @default false
      */
     noDisposeOnSet?: boolean
+
+    /**
+     * Do not update the TTL when overwriting an existing item.
+     */
     noUpdateTTL?: boolean
+
+    /**
+     * Override the default TTL for this one set() operation.
+     * Required if a TTL was not set in the constructor options.
+     */
     ttl?: number
   }
 
   type GetOptions = {
     /**
-     * Update the age of items
+     * Update the age of item being retrieved.
      */
     updateAgeOnGet?: boolean
 

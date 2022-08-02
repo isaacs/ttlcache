@@ -10,8 +10,10 @@ const maybeReqPerfHooks = fallback => {
     return fallback
   }
 }
-const { now } = maybeReqPerfHooks(Date)
+const timeProvider = maybeReqPerfHooks(Date)
+const now = () => timeProvider.now()
 const isPosInt = n => n && n === Math.floor(n) && n > 0 && isFinite(n)
+const isPosIntOrInf = n => n === Infinity || isPosInt(n)
 
 class TTLCache {
   constructor({
@@ -20,17 +22,19 @@ class TTLCache {
     updateAgeOnGet = false,
     noUpdateTTL = false,
     dispose,
-  }) {
+  } = {}) {
     // {[expirationTime]: [keys]}
     this.expirations = Object.create(null)
     // {key=>val}
     this.data = new Map()
     // {key=>expiration}
     this.expirationMap = new Map()
-    if (ttl !== undefined && !isPosInt(ttl)) {
-      throw new TypeError('ttl must be positive integer if set')
+    if (ttl !== undefined && !isPosIntOrInf(ttl)) {
+      throw new TypeError(
+        'ttl must be positive integer or Infinity if set'
+      )
     }
-    if (!isPosInt(max) && max !== Infinity) {
+    if (!isPosIntOrInf(max)) {
       throw new TypeError('max must be positive integer or Infinity')
     }
     this.ttl = ttl
@@ -56,7 +60,7 @@ class TTLCache {
     }
   }
 
-  setTTL (key, ttl = this.ttl) {
+  setTTL(key, ttl = this.ttl) {
     const current = this.expirationMap.get(key)
     if (current !== undefined) {
       // remove from the expirations list, so it isn't purged
@@ -68,15 +72,19 @@ class TTLCache {
       }
     }
 
-    const expiration = Math.floor(now() + ttl)
-    this.expirationMap.set(key, expiration)
-    if (!this.expirations[expiration]) {
-      const t = setTimeout(() => this.purgeStale(), ttl)
-      /* istanbul ignore else - affordance for non-node envs */
-      if (t.unref) t.unref()
-      this.expirations[expiration] = []
+    if (ttl !== Infinity) {
+      const expiration = Math.floor(now() + ttl)
+      this.expirationMap.set(key, expiration)
+      if (!this.expirations[expiration]) {
+        const t = setTimeout(() => this.purgeStale(), ttl)
+        /* istanbul ignore else - affordance for non-node envs */
+        if (t.unref) t.unref()
+        this.expirations[expiration] = []
+      }
+      this.expirations[expiration].push(key)
+    } else {
+      this.expirationMap.set(key, Infinity)
     }
-    this.expirations[expiration].push(key)
   }
 
   set(
@@ -88,8 +96,8 @@ class TTLCache {
       noDisposeOnSet = this.noDisposeOnSet,
     } = {}
   ) {
-    if (!isPosInt(ttl)) {
-      throw new TypeError('ttl must be positive integer')
+    if (!isPosIntOrInf(ttl)) {
+      throw new TypeError('ttl must be positive integer or Infinity')
     }
     if (this.expirationMap.has(key)) {
       if (!noUpdateTTL) {
@@ -121,7 +129,9 @@ class TTLCache {
 
   getRemainingTTL(key) {
     const expiration = this.expirationMap.get(key)
-    return expiration !== undefined
+    return expiration === Infinity
+      ? expiration
+      : expiration !== undefined
       ? Math.max(0, Math.ceil(expiration - now()))
       : 0
   }
@@ -188,7 +198,7 @@ class TTLCache {
   purgeStale() {
     const n = Math.ceil(now())
     for (const exp in this.expirations) {
-      if (exp > n) {
+      if (exp === 'Infinity' || exp > n) {
         return
       }
       for (const key of this.expirations[exp]) {
