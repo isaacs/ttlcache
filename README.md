@@ -29,7 +29,7 @@ Custom size calculation is not supported.  Max capacity is simply the count
 of items in the cache.
 
 ```js
-const TTLCache = require('ttlcache')
+const TTLCache = require('@isaacs/ttlcache')
 const cache = new TTLCache({ max: 10000, ttl: 1000 })
 
 // set some value
