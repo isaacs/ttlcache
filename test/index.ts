@@ -141,6 +141,8 @@ t.test('delete', async t => {
   const c = new TTL({ ttl: 10 })
   c.set(0, 0)
   c.set(1, 1)
+  c.set(2, 2, { ttl: Infinity })
+  t.equal(c.delete(2), true)
   t.equal(c.delete(0), true)
   t.equal(c.get(0), undefined)
   t.equal(c.has(0), false)
