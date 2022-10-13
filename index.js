@@ -20,6 +20,7 @@ class TTLCache {
     updateAgeOnGet = false,
     noUpdateTTL = false,
     dispose,
+    noDisposeOnSet = false,
   } = {}) {
     // {[expirationTime]: [keys]}
     this.expirations = Object.create(null)
@@ -39,6 +40,7 @@ class TTLCache {
     this.max = max
     this.updateAgeOnGet = updateAgeOnGet
     this.noUpdateTTL = noUpdateTTL
+    this.noDisposeOnSet = noDisposeOnSet
     if (dispose !== undefined) {
       if (typeof dispose !== 'function') {
         throw new TypeError('dispose must be function if set')
@@ -193,23 +195,29 @@ class TTLCache {
     for (const exp in this.expirations) {
       const keys = this.expirations[exp]
       if (this.size - keys.length >= this.max) {
+        delete this.expirations[exp]
+        const entries = []
         for (const key of keys) {
-          const val = this.data.get(key)
+          entries.push([key, this.data.get(key)])
           this.data.delete(key)
           this.expirationMap.delete(key)
+        }
+        for (const [key, val] of entries) {
           this.dispose(val, key, 'evict')
         }
-        delete this.expirations[exp]
       } else {
         const s = this.size - this.max
+        const entries = []
         for (const key of keys.splice(0, s)) {
-          const val = this.data.get(key)
+          entries.push([key, this.data.get(key)])
           this.data.delete(key)
           this.expirationMap.delete(key)
+        }
+        for (const [key, val] of entries) {
           this.dispose(val, key, 'evict')
         }
+        return
       }
-      return
     }
   }
 
@@ -223,13 +231,17 @@ class TTLCache {
       if (exp === 'Infinity' || exp > n) {
         return
       }
-      for (const key of this.expirations[exp]) {
-        const val = this.data.get(key)
+      const keys = [...this.expirations[exp]]
+      const entries = []
+      delete this.expirations[exp]
+      for (const key of keys) {
+        entries.push([key, this.data.get(key)])
         this.data.delete(key)
         this.expirationMap.delete(key)
+      }
+      for (const [key, val] of entries) {
         this.dispose(val, key, 'stale')
       }
-      delete this.expirations[exp]
     }
     if (this.size === 0) {
       this.cancelTimers()

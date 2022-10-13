@@ -9,7 +9,7 @@ clock.advance(1)
 const floor = (t: Tap.Test, n: number, e: number, msg?: string) =>
   t.equal(Math.floor(n), Math.floor(e), msg)
 
-t.test('use date if perf_hooks unavailable', async t => {
+t.test('use date if performance unavailable', async t => {
   const { performance } = global
   // @ts-ignore
   global.performance = null

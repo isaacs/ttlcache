@@ -136,6 +136,13 @@ declare namespace TTLCache {
     updateAgeOnGet?: boolean
 
     /**
+     * Do not call dispose() function when overwriting a key with a new value
+     *
+     * @default false
+     */
+    noDisposeOnSet?: boolean
+
+    /**
      * Function that is called on items when they are dropped from the cache.
      * This can be handy if you want to close file descriptors or do other
      * cleanup tasks when items are no longer accessible. Called with `key,
@@ -149,10 +156,8 @@ declare namespace TTLCache {
 
   type SetOptions = {
     /**
-     * Set to true to suppress calling the dispose() function if the entry
-     * key is still accessible within the cache.
-     *
-     * @default false
+     * Do not call dispose() function when overwriting a key with a new value
+     * Overrides the value set in the constructor.
      */
     noDisposeOnSet?: boolean
 
