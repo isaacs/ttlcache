@@ -45,13 +45,28 @@ class TTLCache {
       }
       this.dispose = dispose
     }
+
+    this.timers = new Set()
   }
+
+  // hang onto the timer so we can clearTimeout if all items
+  // are deleted.  Deno doesn't have Timer.unref(), so it
+  // hangs otherwise.
+  cancelTimers() {
+    for (const t of this.timers) {
+      clearTimeout(t)
+      this.timers.delete(t)
+    }
+  }
+
 
   clear() {
     const entries =
       this.dispose !== TTLCache.prototype.dispose ? [...this] : []
     this.data.clear()
     this.expirationMap.clear()
+    // no need for any purging now
+    this.cancelTimers()
     this.expirations = Object.create(null)
     for (const [key, val] of entries) {
       this.dispose(val, key, 'delete')
@@ -74,9 +89,13 @@ class TTLCache {
       const expiration = Math.floor(now() + ttl)
       this.expirationMap.set(key, expiration)
       if (!this.expirations[expiration]) {
-        const t = setTimeout(() => this.purgeStale(), ttl)
+        const t = setTimeout(() => {
+          this.timers.delete(t)
+          this.purgeStale()
+        }, ttl)
         /* istanbul ignore else - affordance for non-node envs */
         if (t.unref) t.unref()
+        this.timers.add(t)
         this.expirations[expiration] = []
       }
       this.expirations[expiration].push(key)
@@ -162,6 +181,9 @@ class TTLCache {
         }
       }
       this.dispose(value, key, 'delete')
+      if (this.size === 0) {
+        this.cancelTimers()
+      }
       return true
     }
     return false
@@ -208,6 +230,9 @@ class TTLCache {
         this.dispose(val, key, 'stale')
       }
       delete this.expirations[exp]
+    }
+    if (this.size === 0) {
+      this.cancelTimers()
     }
   }
 

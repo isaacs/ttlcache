@@ -44,6 +44,19 @@ cache.get(1) // returns undefined
 cache.has(1) // returns false
 ```
 
+## Caveat Regarding Timers and Graceful Exits
+
+On Node.js, this module uses the `Timeout.unref()` method to
+prevent its internal `setTimeout` calls from keeping the process
+running indefinitely.  However, on other systems such as Deno,
+where the `setTimeout` method does not return an object with an
+`unref()` method, the process will stay open as long as any
+unexpired entry exists in the cache.
+
+You may delete all entries (by using `cache.clear()` or
+`cache.delete(key)` with every key) in order to clear the
+timeouts and allow the process to exit normally.
+
 ## API
 
 ### `const TTLCache = require('@isaacs/ttlcache')` or `import TTLCache from '@isaacs/ttlcache'`
