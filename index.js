@@ -154,10 +154,12 @@ class TTLCache {
       this.data.delete(key)
       this.expirationMap.delete(key)
       const exp = this.expirations[current]
-      if (exp && exp.length <= 1) {
-        delete this.expirations[current]
-      } else {
-        this.expirations[current] = exp.filter(k => k !== key)
+      if (exp) {
+        if (exp.length <= 1) {
+          delete this.expirations[current]
+        } else {
+          this.expirations[current] = exp.filter(k => k !== key)
+        }
       }
       this.dispose(value, key, 'delete')
       return true
