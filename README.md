@@ -63,7 +63,7 @@ timeouts and allow the process to exit normally.
 
 Default export is the `TTLCache` class.
 
-### `new TTLCache({ ttl, max = Infinty, updateAgeOnGet = false, noUpdateTTL = false })`
+### `new TTLCache({ ttl, max = Infinty, updateAgeOnGet = false, noUpdateTTL = false, noDisposeOnSet = false })`
 
 Create a new `TTLCache` object.
 
