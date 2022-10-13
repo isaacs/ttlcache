@@ -10,7 +10,13 @@ const floor = (t: Tap.Test, n: number, e: number, msg?: string) =>
   t.equal(Math.floor(n), Math.floor(e), msg)
 
 t.test('use date if perf_hooks unavailable', async t => {
-  const TTL = t.mock('../', { perf_hooks: null })
+  const { performance } = global
+  // @ts-ignore
+  global.performance = null
+  // @ts-ignore
+  t.teardown(() => global.performance = performance)
+
+  const TTL = t.mock('../', {})
   const c = new TTL({ ttl: 1000 })
   c.set(1, 2)
   t.equal(c.has(1), true)
