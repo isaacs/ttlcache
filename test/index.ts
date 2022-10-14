@@ -1,15 +1,17 @@
 import Clock from 'clock-mock'
 import t from 'tap'
-import TTL from '../'
 
 const clock = new Clock()
 t.teardown(clock.enter())
 clock.advance(1)
 
+import TTL from '../'
+
 const floor = (t: Tap.Test, n: number, e: number, msg?: string) =>
   t.equal(Math.floor(n), Math.floor(e), msg)
 
 t.test('use date if performance unavailable', async t => {
+  // @ts-ignore
   const { performance } = global
   // @ts-ignore
   global.performance = null

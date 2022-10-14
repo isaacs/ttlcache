@@ -1,10 +1,11 @@
-import Clock from 'clock-mock'
 import t from 'tap'
-import TTLCache from '../'
+import Clock from 'clock-mock'
 
 const clock = new Clock()
 t.teardown(clock.enter())
 clock.advance(1)
+
+import TTLCache from '../'
 
 const c = new TTLCache({ ttl: Infinity })
 c.set(1, 1, { ttl: Infinity })

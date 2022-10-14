@@ -3,12 +3,14 @@
 // Relies on the fact that integer Object keys are kept sorted,
 // and managed very efficiently by V8.
 
+/* istanbul ignore next */
 const perf =
   typeof performance === 'object' &&
   performance &&
   typeof performance.now === 'function'
     ? performance
     : Date
+
 const now = () => perf.now()
 const isPosInt = n => n && n === Math.floor(n) && n > 0 && isFinite(n)
 const isPosIntOrInf = n => n === Infinity || isPosInt(n)
