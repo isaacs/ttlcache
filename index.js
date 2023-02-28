@@ -63,7 +63,6 @@ class TTLCache {
     }
   }
 
-
   clear() {
     const entries =
       this.dispose !== TTLCache.prototype.dispose ? [...this] : []
@@ -108,15 +107,24 @@ class TTLCache {
     }
   }
 
-  set(
-    key,
-    val,
-    {
-      ttl = this.ttl,
-      noUpdateTTL = this.noUpdateTTL,
-      noDisposeOnSet = this.noDisposeOnSet,
-    } = {}
-  ) {
+  set(key, val, options = {}) {
+    let ttl = this.ttl
+    let noUpdateTTL = this.noUpdateTTL
+    let noDisposeOnSet = this.noDisposeOnSet
+    if (typeof options === 'number') {
+      ttl = options
+    } else {
+      if (options.ttl) {
+        ttl = options.ttl
+      }
+      if (options.noUpdateTTL) {
+        noUpdateTTL = options.noUpdateTTL
+      }
+      if (options.noDisposeOnSet) {
+        noDisposeOnSet = options.noDisposeOnSet
+      }
+    }
+
     if (!isPosIntOrInf(ttl)) {
       throw new TypeError('ttl must be positive integer or Infinity')
     }

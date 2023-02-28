@@ -16,7 +16,7 @@ t.test('use date if performance unavailable', async t => {
   // @ts-ignore
   global.performance = null
   // @ts-ignore
-  t.teardown(() => global.performance = performance)
+  t.teardown(() => (global.performance = performance))
 
   const TTL = t.mock('../', {})
   const c = new TTL({ ttl: 1000 })
@@ -71,6 +71,7 @@ t.test('bad values', async t => {
   //@ts-expect-error
   t.throws(() => new TTL({ dispose: true }))
   t.throws(() => new TTL({ ttl: 1 }).set(1, 2, { ttl: -1 }))
+  t.throws(() => new TTL({ ttl: 1 }).set(1, 2, -1))
 })
 
 t.test('set', async t => {
@@ -230,4 +231,10 @@ t.test('set ttl explicitly', async t => {
 t.test('ctor ok with no argument', async t => {
   const c = new TTL<number, number>()
   t.match(c, { ttl: undefined })
+})
+
+t.test('set with number as third arg for ttl', async t => {
+  const c = new TTL({ ttl: 100 })
+  c.set('key', 'val', 1000)
+  floor(t, c.getRemainingTTL('key'), 1000)
 })

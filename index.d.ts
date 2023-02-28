@@ -14,7 +14,11 @@ declare class TTLCache<K, V> implements Iterable<[K, V]> {
   /**
    * Add a value to the cache.
    */
-  public set(key: K, value: V, options?: TTLCache.SetOptions): this
+  public set(
+    key: K,
+    value: V,
+    options?: number | TTLCache.SetOptions
+  ): this
 
   /**
    * Return a value from the cache.
