@@ -50,19 +50,46 @@ class TTLCache {
       this.dispose = dispose
     }
 
-    this.timers = new Set()
+    this.timer = undefined
+    this.timerExpiration = undefined
+  }
+
+  setTimer (expiration, ttl) {
+    if (this.timerExpiration < expiration) {
+      return
+    }
+
+    if (this.timer) {
+      clearTimeout(this.timer)
+    }
+
+    const t = setTimeout(() => {
+      this.timer = undefined
+      this.timerExpiration = undefined
+      this.purgeStale()
+      for (const exp in this.expirations) {
+        this.setTimer(exp, exp - now())
+        break
+      }
+    }, ttl)
+
+    /* istanbul ignore else - affordance for non-node envs */
+    if (t.unref) t.unref()
+
+    this.timerExpiration = expiration
+    this.timer = t
   }
 
   // hang onto the timer so we can clearTimeout if all items
   // are deleted.  Deno doesn't have Timer.unref(), so it
   // hangs otherwise.
   cancelTimers() {
-    for (const t of this.timers) {
-      clearTimeout(t)
-      this.timers.delete(t)
+    if (this.timer) {
+      clearTimeout(this.timer)
+      this.timerExpiration = undefined
+      this.timer = undefined
     }
   }
-
 
   clear() {
     const entries =
@@ -93,14 +120,8 @@ class TTLCache {
       const expiration = Math.floor(now() + ttl)
       this.expirationMap.set(key, expiration)
       if (!this.expirations[expiration]) {
-        const t = setTimeout(() => {
-          this.timers.delete(t)
-          this.purgeStale()
-        }, ttl)
-        /* istanbul ignore else - affordance for non-node envs */
-        if (t.unref) t.unref()
-        this.timers.add(t)
         this.expirations[expiration] = []
+        this.setTimer(expiration, ttl)
       }
       this.expirations[expiration].push(key)
     } else {

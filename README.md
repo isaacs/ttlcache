@@ -188,6 +188,13 @@ automatically.
 Called when an item is removed from the cache and should be disposed.  Set
 this on the constructor options.
 
+### `setTimer`
+
+**Internal**
+
+Called when an with a ttl is added. This ensures that only one timer
+is setup at once. Called automatically.
+
 ## Algorithm
 
 The cache uses two `Map` objects.  The first maps item keys to their

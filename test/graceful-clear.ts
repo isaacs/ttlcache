@@ -13,13 +13,13 @@ const cache = new TTLCache({
   ttl: 10,
 })
 
-const timers: Set<NodeJS.Timeout> = (cache as unknown as { timers: Set<NodeJS.Timeout> }).timers
+const cacheWithTimer = (cache as unknown as { timer: NodeJS.Timeout | undefined })
 cache.set('a', 'b', { ttl: 1e9 })
-t.equal(timers.size, 1)
+t.type(cacheWithTimer.timer, 'object')
 cache.clear()
-t.equal(timers.size, 0)
+t.equal(cacheWithTimer.timer, undefined)
 
 cache.set('a', 'b', { ttl: 1e9 })
-t.equal(timers.size, 1)
+t.type(cacheWithTimer.timer, 'object')
 cache.delete('a')
-t.equal(timers.size, 0)
+t.equal(cacheWithTimer.timer, undefined)
