@@ -1,6 +1,6 @@
 {
   "name": "@isaacs/ttlcache",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "files": [
     "index.js",
     "index.d.ts"
