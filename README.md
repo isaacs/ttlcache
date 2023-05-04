@@ -53,9 +53,9 @@ where the `setTimeout` method does not return an object with an
 `unref()` method, the process will stay open as long as any
 unexpired entry exists in the cache.
 
-You may delete all entries (by using `cache.clear()` or
-`cache.delete(key)` with every key) in order to clear the
-timeouts and allow the process to exit normally.
+You may call `cache.cancelTimer()` to clear the timeout and
+allow the process to exit normally. Be advised that canceling the
+timer in this way will of course prevent anything from expiring.
 
 ## API
 
@@ -163,6 +163,14 @@ latest expiring.
 
 Return an iterator that walks through each `value` from soonest expiring to
 latest expiring.
+
+### `cache.cancelTimer()`
+
+Clear the internal timer, and stop automatically expiring items
+when their TTL expires.
+
+This allows the process to exit normally on Deno and other
+platforms that lack Node's `Timer.unref()` method.
 
 ## Internal Methods
 

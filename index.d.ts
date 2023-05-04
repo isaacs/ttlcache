@@ -86,6 +86,13 @@ declare class TTLCache<K, V> implements Iterable<[K, V]> {
    * `cache.entries()`
    */
   public [Symbol.iterator](): Iterator<[K, V]>
+
+  /**
+   * Cancel the timer and stop automatically expiring entries.
+   * This allows the process to gracefully exit where Timer.unref()
+   * is not available.
+   */
+  public cancelTimer(): void
 }
 
 declare namespace TTLCache {

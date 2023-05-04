@@ -83,12 +83,20 @@ class TTLCache {
   // hang onto the timer so we can clearTimeout if all items
   // are deleted.  Deno doesn't have Timer.unref(), so it
   // hangs otherwise.
-  cancelTimers() {
+  cancelTimer() {
     if (this.timer) {
       clearTimeout(this.timer)
       this.timerExpiration = undefined
       this.timer = undefined
     }
+  }
+
+  /* istanbul ignore next */
+  cancelTimers() {
+    process.emitWarning('TTLCache.cancelTimers has been renamed to ' +
+      'TTLCache.cancelTimer (no "s"), and will be removed in the next ' +
+      'major version update')
+    return this.cancelTimer()
   }
 
   clear() {
@@ -97,7 +105,7 @@ class TTLCache {
     this.data.clear()
     this.expirationMap.clear()
     // no need for any purging now
-    this.cancelTimers()
+    this.cancelTimer()
     this.expirations = Object.create(null)
     for (const [key, val] of entries) {
       this.dispose(val, key, 'delete')
@@ -207,7 +215,7 @@ class TTLCache {
       }
       this.dispose(value, key, 'delete')
       if (this.size === 0) {
-        this.cancelTimers()
+        this.cancelTimer()
       }
       return true
     }
@@ -267,7 +275,7 @@ class TTLCache {
       }
     }
     if (this.size === 0) {
-      this.cancelTimers()
+      this.cancelTimer()
     }
   }
 

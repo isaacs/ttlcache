@@ -37,8 +37,7 @@ t.test('eviction', async t => {
     data: new Map([['key', 'otherval'], ['a', 'b']]),
   })
 
-  //@ts-ignore
-  c.cancelTimers()
+  c.cancelTimer()
 })
 
 t.test('stale', async t => {
@@ -72,6 +71,5 @@ t.test('stale', async t => {
     data: new Map([['key', 'otherval'], ['a', 'b']]),
   })
 
-  //@ts-ignore
-  c.cancelTimers()
+  c.cancelTimer()
 })
