@@ -63,7 +63,7 @@ timer in this way will of course prevent anything from expiring.
 
 Default export is the `TTLCache` class.
 
-### `new TTLCache({ ttl, max = Infinty, updateAgeOnGet = false, noUpdateTTL = false, noDisposeOnSet = false })`
+### `new TTLCache({ ttl, max = Infinty, updateAgeOnGet = false, checkAgeOnGet = false, noUpdateTTL = false, noDisposeOnSet = false })`
 
 Create a new `TTLCache` object.
 
@@ -77,6 +77,11 @@ Create a new `TTLCache` object.
   call.
 * `updateAgeOnGet` Should the age of an item be updated when it is
   retrieved?  Defaults to `false`.  Overridable on the `get()` method.
+* `checkAgeOnGet` Check the TTL whenever an item is retrieved
+  with `get()`. If the item is past its ttl, but the timer has
+  not yet fired, then delete it and return undefined. By default,
+  the cache will return a value if it has one, even if it is
+  technically beyond its TTL.
 * `noUpdateTTL` Should setting a new value for an existing key leave the
   TTL unchanged?  Defaults to `false`.  Overridable on the `set()` method.
   (Note that TTL is _always_ updated if the item is expired, since that is
@@ -113,14 +118,18 @@ Store a value in the cache for the specified time.
 
 Returns the cache object.
 
-### `cache.get(key, {updateAgeOnGet, ttl} = {})`
+### `cache.get(key, {updateAgeOnGet, checkAgeOnGet, ttl} = {})`
 
 Get an item stored in the cache.  Returns `undefined` if the item is not in
 the cache (including if it has expired and been purged).
 
-If `updateAgeOnGet` is `true`, then re-add the item into the cache with the
-updated `ttl` value.  Both options default to the settings on the
-constructor.
+If `updateAgeOnGet` is `true`, then re-add the item into the
+cache with the updated `ttl` value.  All options default to the
+settings on the constructor.
+
+If `checkAgeOnGet`, then an item will be deleted if it is found
+to be beyond its TTL, which can happen if the setTimeout timer
+has not yet fired to trigger its expiration.
 
 Note that using `updateAgeOnGet` _can_ effectively simulate a
 "least-recently-used" type of algorithm, by repeatedly updating

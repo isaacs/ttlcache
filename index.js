@@ -20,6 +20,7 @@ class TTLCache {
     max = Infinity,
     ttl,
     updateAgeOnGet = false,
+    checkAgeOnGet = false,
     noUpdateTTL = false,
     dispose,
     noDisposeOnSet = false,
@@ -40,9 +41,10 @@ class TTLCache {
     }
     this.ttl = ttl
     this.max = max
-    this.updateAgeOnGet = updateAgeOnGet
-    this.noUpdateTTL = noUpdateTTL
-    this.noDisposeOnSet = noDisposeOnSet
+    this.updateAgeOnGet = !!updateAgeOnGet
+    this.checkAgeOnGet = !!checkAgeOnGet
+    this.noUpdateTTL = !!noUpdateTTL
+    this.noDisposeOnSet = !!noDisposeOnSet
     if (dispose !== undefined) {
       if (typeof dispose !== 'function') {
         throw new TypeError('dispose must be function if set')
@@ -54,7 +56,7 @@ class TTLCache {
     this.timerExpiration = undefined
   }
 
-  setTimer (expiration, ttl) {
+  setTimer(expiration, ttl) {
     if (this.timerExpiration < expiration) {
       return
     }
@@ -93,9 +95,11 @@ class TTLCache {
 
   /* istanbul ignore next */
   cancelTimers() {
-    process.emitWarning('TTLCache.cancelTimers has been renamed to ' +
-      'TTLCache.cancelTimer (no "s"), and will be removed in the next ' +
-      'major version update')
+    process.emitWarning(
+      'TTLCache.cancelTimers has been renamed to ' +
+        'TTLCache.cancelTimer (no "s"), and will be removed in the next ' +
+        'major version update'
+    )
     return this.cancelTimer()
   }
 
@@ -188,9 +192,17 @@ class TTLCache {
 
   get(
     key,
-    { updateAgeOnGet = this.updateAgeOnGet, ttl = this.ttl } = {}
+    {
+      updateAgeOnGet = this.updateAgeOnGet,
+      ttl = this.ttl,
+      checkAgeOnGet = this.checkAgeOnGet,
+    } = {}
   ) {
     const val = this.data.get(key)
+    if (checkAgeOnGet && this.getRemainingTTL(key) === 0) {
+      this.delete(key)
+      return undefined
+    }
     if (updateAgeOnGet) {
       this.setTTL(key, ttl)
     }

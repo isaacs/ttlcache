@@ -16,7 +16,7 @@ t.test('use date if performance unavailable', async t => {
   // @ts-ignore
   global.performance = null
   // @ts-ignore
-  t.teardown(() => global.performance = performance)
+  t.teardown(() => (global.performance = performance))
 
   const TTL = t.mock('../', {})
   const c = new TTL({ ttl: 1000 })
@@ -128,10 +128,7 @@ t.test('set', async t => {
 })
 
 t.test('get update age', async t => {
-  const c = new TTL({
-    ttl: 10,
-    dispose: (...a) => console.error(clock.now(), a),
-  })
+  const c = new TTL({ ttl: 10 })
   c.set(0, 0)
   floor(t, c.getRemainingTTL(0), 10)
   clock.advance(7)
@@ -231,3 +228,21 @@ t.test('ctor ok with no argument', async t => {
   const c = new TTL<number, number>()
   t.match(c, { ttl: undefined })
 })
+
+t.test(
+  'validate the TTL even if the timer has not fired',
+  async t => {
+    const c = new TTL<number, number>({
+      ttl: 10,
+      checkAgeOnGet: true,
+    })
+    c.set(1, 1)
+    t.equal(c.get(1), 1)
+    c.cancelTimer()
+    clock.advance(1000)
+    t.equal(c.size, 1)
+    t.equal(c.get(1, { checkAgeOnGet: false }), 1)
+    t.equal(c.get(1), undefined)
+    t.equal(c.get(1, { checkAgeOnGet: false }), undefined)
+  }
+)

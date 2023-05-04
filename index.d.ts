@@ -6,6 +6,13 @@
 declare class TTLCache<K, V> implements Iterable<[K, V]> {
   constructor(options?: TTLCache.Options<K, V>)
 
+  ttl: number
+  max: number
+  updateAgeOnGet: boolean
+  checkAgeOnGet: boolean
+  noUpdateTTL: boolean
+  noDisposeOnSet: boolean
+
   /**
    * The total number of items held in the cache at the current moment.
    */
@@ -143,6 +150,19 @@ declare namespace TTLCache {
     updateAgeOnGet?: boolean
 
     /**
+     * In the event that an item's expiration timer hasn't yet fired,
+     * and an attempt is made to get() it, then return undefined and
+     * delete it, rather than returning the cached value.
+     *
+     * By default, items are only expired when their timer fires, so there's
+     * a bit of a "best effort" expiration, and the cache will return a value
+     * if it has one, even if it's technically stale.
+     *
+     * @default false
+     */
+    checkAgeOnGet?: boolean
+
+    /**
      * Do not call dispose() function when overwriting a key with a new value
      *
      * @default false
@@ -182,9 +202,24 @@ declare namespace TTLCache {
 
   type GetOptions = {
     /**
-     * Update the age of item being retrieved.
+     * Update the age of items on cache.get(), renewing their TTL
+     *
+     * @default false
      */
     updateAgeOnGet?: boolean
+
+    /**
+     * In the event that an item's expiration timer hasn't yet fired,
+     * and an attempt is made to get() it, then return undefined and
+     * delete it, rather than returning the cached value.
+     *
+     * By default, items are only expired when their timer fires, so there's
+     * a bit of a "best effort" expiration, and the cache will return a value
+     * if it has one, even if it's technically stale.
+     *
+     * @default false
+     */
+    checkAgeOnGet?: boolean
 
     /**
      * Set new TTL, applied only when `updateAgeOnGet` is true
