@@ -274,7 +274,11 @@ class TTLCache {
       if (exp === 'Infinity' || exp > n) {
         return
       }
-      const keys = [...this.expirations[exp]]
+
+      /* istanbul ignore next
+       * mysterious need for a guard here?
+       * https://github.com/isaacs/ttlcache/issues/26 */
+      const keys = [...(this.expirations[exp] || [])]
       const entries = []
       delete this.expirations[exp]
       for (const key of keys) {
