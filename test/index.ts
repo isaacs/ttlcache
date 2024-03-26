@@ -162,20 +162,24 @@ t.test('delete', async t => {
 
 t.test('iterators', async t => {
   const c = new TTL({ ttl: 10 })
+  c.set('a', 'A', { ttl: Infinity })
   for (let i = 0; i < 3; i++) {
     c.set(i, i * 2)
   }
+  c.set('b', 'B', { ttl: Infinity })
   t.same(
     [...c],
     [
       [0, 0],
       [1, 2],
       [2, 4],
+      ['a', 'A'],
+      ['b', 'B'],
     ]
   )
   t.same([...c.entries()], [...c])
-  t.same([...c.values()], [0, 2, 4])
-  t.same([...c.keys()], [0, 1, 2])
+  t.same([...c.values()], [0, 2, 4, 'A', 'B'])
+  t.same([...c.keys()], [0, 1, 2, 'a', 'b'])
 })
 
 t.test('clear', async t => {
