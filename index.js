@@ -296,24 +296,30 @@ class TTLCache {
   }
 
   *entries() {
-    for (const exp in this.expirations) {
-      for (const key of this.expirations[exp]) {
-        yield [key, this.data.get(key)]
-      }
+    const sortedKeys = Array.from(this.expirationMap)
+      .sort((a, b) => a[1] - b[1])
+      .map(entry => entry[0])
+
+    for (const key of sortedKeys) {
+      yield [key, this.data.get(key)]
     }
   }
   *keys() {
-    for (const exp in this.expirations) {
-      for (const key of this.expirations[exp]) {
-        yield key
-      }
+    const sortedKeys = Array.from(this.expirationMap)
+      .sort((a, b) => a[1] - b[1])
+      .map(entry => entry[0])
+
+    for (const key of sortedKeys) {
+      yield key
     }
   }
   *values() {
-    for (const exp in this.expirations) {
-      for (const key of this.expirations[exp]) {
-        yield this.data.get(key)
-      }
+    const sortedKeys = Array.from(this.expirationMap)
+      .sort((a, b) => a[1] - b[1])
+      .map(entry => entry[0])
+
+    for (const key of sortedKeys) {
+      yield this.data.get(key)
     }
   }
   [Symbol.iterator]() {
