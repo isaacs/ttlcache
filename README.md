@@ -208,7 +208,7 @@ this on the constructor options.
 
 **Internal**
 
-Called when an with a ttl is added. This ensures that only one timer
+Called when an item with a ttl is added. This ensures that only one timer
 is setup at once. Called automatically.
 
 ## Algorithm
