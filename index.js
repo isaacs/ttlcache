@@ -70,7 +70,7 @@ class TTLCache {
       this.timerExpiration = undefined
       this.purgeStale()
       for (const exp in this.expirations) {
-        this.setTimer(exp, exp - now())
+        this.setTimer(exp, Math.max(exp - now(), 0))
         break
       }
     }, ttl)
