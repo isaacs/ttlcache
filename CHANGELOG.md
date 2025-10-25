@@ -1,6 +1,7 @@
 ## 2.0
 
 - refactor as hybrid typescript module (changes export)
+- Blue Oak license
 
 ## 1.4
 
