@@ -3,19 +3,62 @@
 // Relies on the fact that integer Object keys are kept sorted,
 // and managed very efficiently by V8.
 
-/* istanbul ignore next */
+/* c8 ignore start */
 const perf =
   typeof performance === 'object' &&
   performance &&
   typeof performance.now === 'function'
     ? performance
     : Date
+/* c8 ignore stop */
 
 const now = () => perf.now()
-const isPosInt = n => n && n === Math.floor(n) && n > 0 && isFinite(n)
-const isPosIntOrInf = n => n === Infinity || isPosInt(n)
+const isPosInt = (n: any): n is number =>
+  !!n && n === Math.floor(n) && n > 0 && isFinite(n)
+const isPosIntOrInf = (n: any): n is number =>
+  n === Infinity || isPosInt(n)
 
-class TTLCache {
+export type DisposeReason = 'set' | 'delete' | 'stale' | 'evict'
+
+export type DisposeFunction<K, V> = (
+  val: V,
+  key: K,
+  reason: DisposeReason,
+) => unknown
+
+export type TTLCacheOptions<K, V> = {
+  max?: number
+  ttl?: number
+  updateAgeOnGet?: boolean
+  checkAgeOnGet?: boolean
+  noUpdateTTL?: boolean
+  dispose?: DisposeFunction<K, V>
+  noDisposeOnSet?: boolean
+}
+
+export type SetOptions<K, V> = Pick<
+  TTLCacheOptions<K, V>,
+  'ttl' | 'noUpdateTTL' | 'noDisposeOnSet'
+>
+export type GetOptions<K, V> = Pick<
+  TTLCacheOptions<K, V>,
+  'updateAgeOnGet' | 'ttl' | 'checkAgeOnGet'
+>
+
+export class TTLCache<K = unknown, V = unknown> {
+  expirations: Record<number, K[]> = Object.create(null)
+  data = new Map<K, V>()
+  expirationMap = new Map<K, number>()
+  ttl?: number
+  max: number
+  updateAgeOnGet: boolean
+  noUpdateTTL: boolean
+  noDisposeOnSet: boolean
+  checkAgeOnGet: boolean
+  dispose: DisposeFunction<K, V>
+  timer?: ReturnType<typeof setTimeout>
+  timerExpiration?: number
+
   constructor({
     max = Infinity,
     ttl,
@@ -24,16 +67,10 @@ class TTLCache {
     noUpdateTTL = false,
     dispose,
     noDisposeOnSet = false,
-  } = {}) {
-    // {[expirationTime]: [keys]}
-    this.expirations = Object.create(null)
-    // {key=>val}
-    this.data = new Map()
-    // {key=>expiration}
-    this.expirationMap = new Map()
+  }: TTLCacheOptions<K, V> = {}) {
     if (ttl !== undefined && !isPosIntOrInf(ttl)) {
       throw new TypeError(
-        'ttl must be positive integer or Infinity if set'
+        'ttl must be positive integer or Infinity if set',
       )
     }
     if (!isPosIntOrInf(max)) {
@@ -50,14 +87,16 @@ class TTLCache {
         throw new TypeError('dispose must be function if set')
       }
       this.dispose = dispose
+    } else {
+      this.dispose = (_, __, ___) => {}
     }
 
     this.timer = undefined
     this.timerExpiration = undefined
   }
 
-  setTimer(expiration, ttl) {
-    if (this.timerExpiration < expiration) {
+  setTimer(expiration: number, ttl: number) {
+    if (this.timerExpiration && this.timerExpiration < expiration) {
       return
     }
 
@@ -70,13 +109,15 @@ class TTLCache {
       this.timerExpiration = undefined
       this.purgeStale()
       for (const exp in this.expirations) {
-        this.setTimer(exp, exp - now())
+        const e = Number(exp)
+        this.setTimer(e, e - now())
         break
       }
     }, ttl)
 
-    /* istanbul ignore else - affordance for non-node envs */
+    /* c8 ignore start - affordance for non-node envs */
     if (t.unref) t.unref()
+    /* c8 ignore stop */
 
     this.timerExpiration = expiration
     this.timer = t
@@ -93,15 +134,16 @@ class TTLCache {
     }
   }
 
-  /* istanbul ignore next */
+  /* c8 ignore start */
   cancelTimers() {
     process.emitWarning(
       'TTLCache.cancelTimers has been renamed to ' +
         'TTLCache.cancelTimer (no "s"), and will be removed in the next ' +
-        'major version update'
+        'major version update',
     )
     return this.cancelTimer()
   }
+  /* c8 ignore stop */
 
   clear() {
     const entries =
@@ -111,12 +153,12 @@ class TTLCache {
     // no need for any purging now
     this.cancelTimer()
     this.expirations = Object.create(null)
-    for (const [key, val] of entries) {
+    for (const [key, val] of entries as [K, V][]) {
       this.dispose(val, key, 'delete')
     }
   }
 
-  setTTL(key, ttl = this.ttl) {
+  setTTL(key: K, ttl = this.ttl) {
     const current = this.expirationMap.get(key)
     if (current !== undefined) {
       // remove from the expirations list, so it isn't purged
@@ -128,7 +170,7 @@ class TTLCache {
       }
     }
 
-    if (ttl !== Infinity) {
+    if (ttl && ttl !== Infinity) {
       const expiration = Math.floor(now() + ttl)
       this.expirationMap.set(key, expiration)
       if (!this.expirations[expiration]) {
@@ -142,13 +184,13 @@ class TTLCache {
   }
 
   set(
-    key,
-    val,
+    key: K,
+    val: V,
     {
       ttl = this.ttl,
       noUpdateTTL = this.noUpdateTTL,
       noDisposeOnSet = this.noDisposeOnSet,
-    } = {}
+    }: SetOptions<K, V> = {},
   ) {
     if (!isPosIntOrInf(ttl)) {
       throw new TypeError('ttl must be positive integer or Infinity')
@@ -159,7 +201,7 @@ class TTLCache {
       }
       // has old value
       const oldValue = this.data.get(key)
-      if (oldValue !== val) {
+      if (oldValue !== undefined && oldValue !== val) {
         this.data.set(key, val)
         if (!noDisposeOnSet) {
           this.dispose(oldValue, key, 'set')
@@ -177,26 +219,26 @@ class TTLCache {
     return this
   }
 
-  has(key) {
+  has(key: K) {
     return this.data.has(key)
   }
 
-  getRemainingTTL(key) {
+  getRemainingTTL(key: K) {
     const expiration = this.expirationMap.get(key)
     return expiration === Infinity
       ? expiration
       : expiration !== undefined
-      ? Math.max(0, Math.ceil(expiration - now()))
-      : 0
+        ? Math.max(0, Math.ceil(expiration - now()))
+        : 0
   }
 
   get(
-    key,
+    key: K,
     {
       updateAgeOnGet = this.updateAgeOnGet,
       ttl = this.ttl,
       checkAgeOnGet = this.checkAgeOnGet,
-    } = {}
+    }: GetOptions<K, V> = {},
   ) {
     const val = this.data.get(key)
     if (checkAgeOnGet && this.getRemainingTTL(key) === 0) {
@@ -209,12 +251,10 @@ class TTLCache {
     return val
   }
 
-  dispose(_, __) {}
-
-  delete(key) {
+  delete(key: K) {
     const current = this.expirationMap.get(key)
     if (current !== undefined) {
-      const value = this.data.get(key)
+      const value = this.data.get(key) as V
       this.data.delete(key)
       this.expirationMap.delete(key)
       const exp = this.expirations[current]
@@ -236,12 +276,12 @@ class TTLCache {
 
   purgeToCapacity() {
     for (const exp in this.expirations) {
-      const keys = this.expirations[exp]
+      const keys = this.expirations[exp] as K[]
       if (this.size - keys.length >= this.max) {
         delete this.expirations[exp]
-        const entries = []
+        const entries: [K, V][] = []
         for (const key of keys) {
-          entries.push([key, this.data.get(key)])
+          entries.push([key, this.data.get(key) as V])
           this.data.delete(key)
           this.expirationMap.delete(key)
         }
@@ -250,9 +290,9 @@ class TTLCache {
         }
       } else {
         const s = this.size - this.max
-        const entries = []
+        const entries: [K, V][] = []
         for (const key of keys.splice(0, s)) {
-          entries.push([key, this.data.get(key)])
+          entries.push([key, this.data.get(key) as V])
           this.data.delete(key)
           this.expirationMap.delete(key)
         }
@@ -271,18 +311,19 @@ class TTLCache {
   purgeStale() {
     const n = Math.ceil(now())
     for (const exp in this.expirations) {
-      if (exp === 'Infinity' || exp > n) {
+      if (exp === 'Infinity' || Number(exp) > n) {
         return
       }
 
-      /* istanbul ignore next
+      /* c8 ignore start
        * mysterious need for a guard here?
        * https://github.com/isaacs/ttlcache/issues/26 */
       const keys = [...(this.expirations[exp] || [])]
-      const entries = []
+      /* c8 ignore stop */
+      const entries: [K, V][] = []
       delete this.expirations[exp]
       for (const key of keys) {
-        entries.push([key, this.data.get(key)])
+        entries.push([key, this.data.get(key) as V])
         this.data.delete(key)
         this.expirationMap.delete(key)
       }
@@ -297,21 +338,21 @@ class TTLCache {
 
   *entries() {
     for (const exp in this.expirations) {
-      for (const key of this.expirations[exp]) {
-        yield [key, this.data.get(key)]
+      for (const key of this.expirations[exp] as K[]) {
+        yield [key, this.data.get(key)] as [K, V]
       }
     }
   }
   *keys() {
     for (const exp in this.expirations) {
-      for (const key of this.expirations[exp]) {
+      for (const key of this.expirations[exp] as K[]) {
         yield key
       }
     }
   }
   *values() {
     for (const exp in this.expirations) {
-      for (const key of this.expirations[exp]) {
+      for (const key of this.expirations[exp] as K[]) {
         yield this.data.get(key)
       }
     }
@@ -320,5 +361,3 @@ class TTLCache {
     return this.entries()
   }
 }
-
-module.exports = TTLCache

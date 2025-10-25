@@ -1,14 +1,16 @@
-import Clock from 'clock-mock'
-import t from 'tap'
+import t, { type Test } from 'tap'
 
-const clock = new Clock()
+const clock = t.clock
 t.teardown(clock.enter())
-clock.advance(1)
 
-import TTL from '../'
+const { TTLCache } = await t.mockImport<
+  typeof import('@isaacs/ttlcache')
+>('@isaacs/ttlcache')
 
-const floor = (t: Tap.Test, n: number, e: number, msg?: string) =>
-  t.equal(Math.floor(n), Math.floor(e), msg)
+const floor = (t: Test, n: number, e: number, msg?: string) =>
+  msg
+    ? t.equal(Math.floor(n), Math.floor(e), msg)
+    : t.equal(Math.floor(n), Math.floor(e))
 
 t.test('use date if performance unavailable', async t => {
   // @ts-ignore
@@ -18,8 +20,8 @@ t.test('use date if performance unavailable', async t => {
   // @ts-ignore
   t.teardown(() => (global.performance = performance))
 
-  const TTL = t.mock('../', {})
-  const c = new TTL({ ttl: 1000 })
+  const { TTLCache } = await t.mockImport('../src/index.ts', {})
+  const c = new TTLCache({ ttl: 1000 })
   c.set(1, 2)
   t.equal(c.has(1), true)
   t.equal(c.get(1), 2)
@@ -29,8 +31,10 @@ t.test('use date if performance unavailable', async t => {
 })
 
 t.test('basic operation', async t => {
-  const c = new TTL({ ttl: 1000 })
+  const c = new TTLCache({ ttl: 1000 })
+  c.purgeToCapacity()
   c.set(1, 2)
+  c.purgeToCapacity()
   t.equal(c.has(1), true)
   t.equal(c.get(1), 2)
   clock.advance(1001)
@@ -39,7 +43,7 @@ t.test('basic operation', async t => {
 })
 
 t.test('constructor - updateAgeOnGet', async t => {
-  const c = new TTL({ ttl: 1000, updateAgeOnGet: true })
+  const c = new TTLCache({ ttl: 1000, updateAgeOnGet: true })
   c.set(1, 2)
 
   floor(t, c.getRemainingTTL(1), 1000)
@@ -54,7 +58,7 @@ t.test('constructor - updateAgeOnGet', async t => {
 })
 
 t.test('constructor - noUpdateTTL', async t => {
-  const c = new TTL({ ttl: 1000, noUpdateTTL: true })
+  const c = new TTLCache({ ttl: 1000, noUpdateTTL: true })
   c.set(1, 2)
 
   floor(t, c.getRemainingTTL(1), 1000)
@@ -66,11 +70,11 @@ t.test('constructor - noUpdateTTL', async t => {
 })
 
 t.test('bad values', async t => {
-  t.throws(() => new TTL({ max: -1 }))
-  t.throws(() => new TTL({ ttl: -1 }))
+  t.throws(() => new TTLCache({ max: -1 }))
+  t.throws(() => new TTLCache({ ttl: -1 }))
   //@ts-expect-error
-  t.throws(() => new TTL({ dispose: true }))
-  t.throws(() => new TTL({ ttl: 1 }).set(1, 2, { ttl: -1 }))
+  t.throws(() => new TTLCache({ dispose: true }))
+  t.throws(() => new TTLCache({ ttl: 1 }).set(1, 2, { ttl: -1 }))
 })
 
 t.test('set', async t => {
@@ -78,7 +82,7 @@ t.test('set', async t => {
   const disposals: [SN, SN, string][] = []
   const dispose = (val: SN, key: SN, reason: string) =>
     disposals.push([val, key, reason])
-  const c = new TTL<SN, SN>({
+  const c = new TTLCache<SN, SN>({
     ttl: 10,
     dispose,
     max: 5,
@@ -128,7 +132,7 @@ t.test('set', async t => {
 })
 
 t.test('get update age', async t => {
-  const c = new TTL({ ttl: 10 })
+  const c = new TTLCache({ ttl: 10 })
   c.set(0, 0)
   floor(t, c.getRemainingTTL(0), 10)
   clock.advance(7)
@@ -143,7 +147,7 @@ t.test('get update age', async t => {
 })
 
 t.test('delete', async t => {
-  const c = new TTL({ ttl: 10 })
+  const c = new TTLCache({ ttl: 10 })
   c.set(0, 0)
   c.set(1, 1)
   c.set(2, 2, { ttl: Infinity })
@@ -161,7 +165,7 @@ t.test('delete', async t => {
 })
 
 t.test('iterators', async t => {
-  const c = new TTL({ ttl: 10 })
+  const c = new TTLCache({ ttl: 10 })
   for (let i = 0; i < 3; i++) {
     c.set(i, i * 2)
   }
@@ -171,7 +175,7 @@ t.test('iterators', async t => {
       [0, 0],
       [1, 2],
       [2, 4],
-    ]
+    ],
   )
   t.same([...c.entries()], [...c])
   t.same([...c.values()], [0, 2, 4])
@@ -182,7 +186,7 @@ t.test('clear', async t => {
   const disposals: [number, number, string][] = []
   const dispose = (...a: [number, number, string]) =>
     disposals.push(a)
-  const c = new TTL({ ttl: 10, dispose })
+  const c = new TTLCache({ ttl: 10, dispose })
   for (let i = 0; i < 3; i++) {
     c.set(i, i * 2)
   }
@@ -203,7 +207,7 @@ t.test('clear', async t => {
 })
 
 t.test('update TTL, multiple same expiration', async t => {
-  const c = new TTL({ ttl: 10 })
+  const c = new TTLCache({ ttl: 10 })
   for (let i = 0; i < 10; i++) {
     c.set(i, i * 2)
   }
@@ -215,7 +219,7 @@ t.test('update TTL, multiple same expiration', async t => {
 })
 
 t.test('set ttl explicitly', async t => {
-  const c = new TTL<number, number>({ ttl: 10 })
+  const c = new TTLCache<number, number>({ ttl: 10 })
   c.set(1, 1)
   floor(t, c.getRemainingTTL(1), 10, 'starts at default')
   c.setTTL(1, 1000)
@@ -225,14 +229,14 @@ t.test('set ttl explicitly', async t => {
 })
 
 t.test('ctor ok with no argument', async t => {
-  const c = new TTL<number, number>()
+  const c = new TTLCache<number, number>()
   t.match(c, { ttl: undefined })
 })
 
 t.test(
   'validate the TTL even if the timer has not fired',
   async t => {
-    const c = new TTL<number, number>({
+    const c = new TTLCache<number, number>({
       ttl: 10,
       checkAgeOnGet: true,
     })
@@ -244,5 +248,5 @@ t.test(
     t.equal(c.get(1, { checkAgeOnGet: false }), 1)
     t.equal(c.get(1), undefined)
     t.equal(c.get(1, { checkAgeOnGet: false }), undefined)
-  }
+  },
 )

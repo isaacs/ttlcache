@@ -7,8 +7,8 @@
 // that stores the time of each hit, so the size of the
 // entry is the number of hits within a given window.
 
-import type {Options as TTLCacheOptions} from '../'
-import TTLCache from '../'
+import type { TTLCacheOptions } from '@isaacs/ttlcache'
+import { TTLCache } from '@isaacs/ttlcache'
 
 export interface Options {
   window: number
@@ -43,10 +43,12 @@ class RateLimiter<K> extends Map<K, TTLCache<number, boolean>> {
     this.max = options.max
   }
   hit(key: K) {
-    const c = super.get(key) || new RLEntry({
-      ttl: this.window,
-      onEmpty: () => this.delete(key),
-    })
+    const c =
+      super.get(key) ||
+      new RLEntry({
+        ttl: this.window,
+        onEmpty: () => this.delete(key),
+      })
 
     this.set(key, c)
 
@@ -58,7 +60,7 @@ class RateLimiter<K> extends Map<K, TTLCache<number, boolean>> {
     return true
   }
 
-  count (key: K) {
+  count(key: K) {
     const c = super.get(key)
     return c ? c.size : 0
   }

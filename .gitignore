@@ -2,6 +2,9 @@
 /*
 /.*
 
+!/src
+!/.tshy
+!/tsconfig.json
 !/bin
 !/lib
 !/doc{s,}

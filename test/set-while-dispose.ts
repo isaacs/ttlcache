@@ -1,10 +1,10 @@
 import t from 'tap'
-import Clock from 'clock-mock'
-const clock = new Clock()
+const clock = t.clock
 clock.enter()
-clock.advance(1)
 
-import TTLCache from '../'
+const { TTLCache } = await t.mockImport<
+  typeof import('@isaacs/ttlcache')
+>('@isaacs/ttlcache')
 
 t.test('eviction', async t => {
   let didReSet = false
@@ -33,8 +33,11 @@ t.test('eviction', async t => {
   c.set('a', 'b')
 
   t.match(c, {
-    expirations: { '1003': [ 'a', 'key' ] },
-    data: new Map([['key', 'otherval'], ['a', 'b']]),
+    expirations: { '1003': ['a', 'key'] },
+    data: new Map([
+      ['key', 'otherval'],
+      ['a', 'b'],
+    ]),
   })
 
   c.cancelTimer()
@@ -67,8 +70,11 @@ t.test('stale', async t => {
   clock.advance(1)
 
   t.match(c, {
-    expirations: { '7': [ 'key', 'a' ] },
-    data: new Map([['key', 'otherval'], ['a', 'b']]),
+    expirations: { '7': ['key', 'a'] },
+    data: new Map([
+      ['key', 'otherval'],
+      ['a', 'b'],
+    ]),
   })
 
   c.cancelTimer()
