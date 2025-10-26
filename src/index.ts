@@ -353,7 +353,7 @@ export class TTLCache<K = unknown, V = unknown> {
   *values() {
     for (const exp in this.expirations) {
       for (const key of this.expirations[exp] as K[]) {
-        yield this.data.get(key)
+        yield this.data.get(key) as V
       }
     }
   }
