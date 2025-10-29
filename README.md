@@ -29,7 +29,7 @@ Custom size calculation is not supported. Max capacity is simply the count
 of items in the cache.
 
 ```js
-const TTLCache = require('@isaacs/ttlcache')
+import { TTLCache } from '@isaacs/ttlcache')
 const cache = new TTLCache({ max: 10000, ttl: 1000 })
 
 // set some value
@@ -59,9 +59,9 @@ timer in this way will of course prevent anything from expiring.
 
 ## API
 
-### `const TTLCache = require('@isaacs/ttlcache')` or `import TTLCache from '@isaacs/ttlcache'`
+### `const { TTLCache } = require('@isaacs/ttlcache')` or `import TTLCache from '@isaacs/ttlcache'`
 
-Default export is the `TTLCache` class.
+The `TTLCache` class is a named export.
 
 ### `new TTLCache({ ttl, max = Infinty, updateAgeOnGet = false, checkAgeOnGet = false, noUpdateTTL = false, noDisposeOnSet = false })`
 
