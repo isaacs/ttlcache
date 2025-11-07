@@ -40,6 +40,8 @@ t.test('basic operation', async t => {
   clock.advance(1001)
   t.equal(c.has(1), false)
   t.equal(c.get(1), undefined)
+  // ensure this doesn't raise an error
+  c.setTimer(10000, -1)
 })
 
 t.test('constructor - updateAgeOnGet', async t => {

@@ -113,7 +113,7 @@ export class TTLCache<K = unknown, V = unknown> {
         this.setTimer(e, e - now())
         break
       }
-    }, ttl)
+    }, Math.max(0, ttl))
 
     /* c8 ignore start - affordance for non-node envs */
     if (t.unref) t.unref()
