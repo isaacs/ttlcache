@@ -1,3 +1,8 @@
+## 2.1
+
+- Add `updateAgeOnHas` and `checkAgeOnHas` options to match
+  corresponding `get()` options.
+
 ## 2.0
 
 - refactor as hybrid typescript module (changes export)

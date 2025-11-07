@@ -59,6 +59,21 @@ t.test('constructor - updateAgeOnGet', async t => {
   floor(t, c.getRemainingTTL(1), 100)
 })
 
+t.test('constructor - updateAgeOnHas', async t => {
+  const c = new TTLCache({ ttl: 1000, updateAgeOnHas: true })
+  c.set(1, 2)
+
+  floor(t, c.getRemainingTTL(1), 1000)
+  clock.advance(5)
+  floor(t, c.getRemainingTTL(1), 995)
+
+  t.equal(c.has(1), true) // Should reset timer
+  floor(t, c.getRemainingTTL(1), 1000)
+
+  t.equal(c.has(1, { ttl: 100 }), true)
+  floor(t, c.getRemainingTTL(1), 100)
+})
+
 t.test('constructor - noUpdateTTL', async t => {
   const c = new TTLCache({ ttl: 1000, noUpdateTTL: true })
   c.set(1, 2)
@@ -241,14 +256,21 @@ t.test(
     const c = new TTLCache<number, number>({
       ttl: 10,
       checkAgeOnGet: true,
+      checkAgeOnHas: true,
     })
     c.set(1, 1)
+    c.set(2, 2)
     t.equal(c.get(1), 1)
     c.cancelTimer()
     clock.advance(1000)
-    t.equal(c.size, 1)
+    t.equal(c.size, 2)
     t.equal(c.get(1, { checkAgeOnGet: false }), 1)
+    t.equal(c.has(2, { checkAgeOnHas: false }), true)
     t.equal(c.get(1), undefined)
+    t.equal(c.size, 1)
+    t.equal(c.has(2), false)
+    t.equal(c.size, 0)
     t.equal(c.get(1, { checkAgeOnGet: false }), undefined)
+    t.equal(c.has(2, { checkAgeOnHas: false }), false)
   },
 )

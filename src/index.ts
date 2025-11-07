@@ -26,13 +26,34 @@ export type DisposeFunction<K, V> = (
   reason: DisposeReason,
 ) => unknown
 
+export type TimeInMilliseconds = number
+
 export type TTLCacheOptions<K, V> = {
+  /** the maximum number of items to store in the cache */
   max?: number
-  ttl?: number
+  /** time in ms to store items, must be positive number */
+  ttl?: TimeInMilliseconds
+  /** Update the remaining TTL when getting items */
   updateAgeOnGet?: boolean
+  /**
+   * Check the remaining age when getting items. Note that if this is not
+   * set, then it's possible to get expired items that have not yet been
+   * preemptively purged.
+   */
   checkAgeOnGet?: boolean
+  /** Update the remaining TTL when checking for an item's presence */
+  updateAgeOnHas?: boolean
+  /**
+   * Check the remaining age when checking for an items presence. Note that if
+   * this is not set, then expired items will return `true` if they have not yet
+   * been preemptively purged.
+   */
+  checkAgeOnHas?: boolean
+  /** do not update the TTL when setting a new value for an existing key */
   noUpdateTTL?: boolean
+  /** A function to call when an item is removed from the cache */
   dispose?: DisposeFunction<K, V>
+  /** Do not call `dispose` when setting an existing key to a new value */
   noDisposeOnSet?: boolean
 }
 
@@ -45,6 +66,11 @@ export type GetOptions<K, V> = Pick<
   'updateAgeOnGet' | 'ttl' | 'checkAgeOnGet'
 >
 
+export type HasOptions<K, V> = Pick<
+  TTLCacheOptions<K, V>,
+  'updateAgeOnHas' | 'ttl' | 'checkAgeOnHas'
+>
+
 export class TTLCache<K = unknown, V = unknown> {
   expirations: Record<number, K[]> = Object.create(null)
   data = new Map<K, V>()
@@ -52,9 +78,11 @@ export class TTLCache<K = unknown, V = unknown> {
   ttl?: number
   max: number
   updateAgeOnGet: boolean
+  updateAgeOnHas: boolean
   noUpdateTTL: boolean
   noDisposeOnSet: boolean
   checkAgeOnGet: boolean
+  checkAgeOnHas: boolean
   dispose: DisposeFunction<K, V>
   timer?: ReturnType<typeof setTimeout>
   timerExpiration?: number
@@ -64,6 +92,8 @@ export class TTLCache<K = unknown, V = unknown> {
     ttl,
     updateAgeOnGet = false,
     checkAgeOnGet = false,
+    updateAgeOnHas = false,
+    checkAgeOnHas = false,
     noUpdateTTL = false,
     dispose,
     noDisposeOnSet = false,
@@ -80,6 +110,8 @@ export class TTLCache<K = unknown, V = unknown> {
     this.max = max
     this.updateAgeOnGet = !!updateAgeOnGet
     this.checkAgeOnGet = !!checkAgeOnGet
+    this.updateAgeOnHas = !!updateAgeOnHas
+    this.checkAgeOnHas = !!checkAgeOnHas
     this.noUpdateTTL = !!noUpdateTTL
     this.noDisposeOnSet = !!noDisposeOnSet
     if (dispose !== undefined) {
@@ -104,16 +136,19 @@ export class TTLCache<K = unknown, V = unknown> {
       clearTimeout(this.timer)
     }
 
-    const t = setTimeout(() => {
-      this.timer = undefined
-      this.timerExpiration = undefined
-      this.purgeStale()
-      for (const exp in this.expirations) {
-        const e = Number(exp)
-        this.setTimer(e, e - now())
-        break
-      }
-    }, Math.max(0, ttl))
+    const t = setTimeout(
+      () => {
+        this.timer = undefined
+        this.timerExpiration = undefined
+        this.purgeStale()
+        for (const exp in this.expirations) {
+          const e = Number(exp)
+          this.setTimer(e, e - now())
+          break
+        }
+      },
+      Math.max(0, ttl),
+    )
 
     /* c8 ignore start - affordance for non-node envs */
     if (t.unref) t.unref()
@@ -219,8 +254,25 @@ export class TTLCache<K = unknown, V = unknown> {
     return this
   }
 
-  has(key: K) {
-    return this.data.has(key)
+  has(
+    key: K,
+    {
+      checkAgeOnHas = this.checkAgeOnHas,
+      ttl = this.ttl,
+      updateAgeOnHas = this.updateAgeOnHas,
+    }: HasOptions<K, V> = {},
+  ) {
+    if (this.data.has(key)) {
+      if (checkAgeOnHas && this.getRemainingTTL(key) === 0) {
+        this.delete(key)
+        return false
+      }
+      if (updateAgeOnHas) {
+        this.setTTL(key, ttl)
+      }
+      return true
+    }
+    return false
   }
 
   getRemainingTTL(key: K) {
