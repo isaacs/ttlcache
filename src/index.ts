@@ -86,6 +86,7 @@ export class TTLCache<K = unknown, V = unknown> {
   dispose: DisposeFunction<K, V>
   timer?: ReturnType<typeof setTimeout>
   timerExpiration?: number
+  immortalKeys = new Set<K>()
 
   constructor({
     max = Infinity,
@@ -206,6 +207,7 @@ export class TTLCache<K = unknown, V = unknown> {
     }
 
     if (ttl && ttl !== Infinity) {
+      this.immortalKeys.delete(key)
       const expiration = Math.floor(now() + ttl)
       this.expirationMap.set(key, expiration)
       if (!this.expirations[expiration]) {
@@ -214,6 +216,7 @@ export class TTLCache<K = unknown, V = unknown> {
       }
       this.expirations[expiration].push(key)
     } else {
+      this.immortalKeys.add(key)
       this.expirationMap.set(key, Infinity)
     }
   }
@@ -309,6 +312,7 @@ export class TTLCache<K = unknown, V = unknown> {
       const value = this.data.get(key) as V
       this.data.delete(key)
       this.expirationMap.delete(key)
+      this.immortalKeys.delete(key)
       const exp = this.expirations[current]
       if (exp) {
         if (exp.length <= 1) {
@@ -394,6 +398,9 @@ export class TTLCache<K = unknown, V = unknown> {
         yield [key, this.data.get(key)] as [K, V]
       }
     }
+    for (const key of this.immortalKeys) {
+      yield [key, this.data.get(key)] as [K, V]
+    }
   }
   *keys() {
     for (const exp in this.expirations) {
@@ -401,12 +408,18 @@ export class TTLCache<K = unknown, V = unknown> {
         yield key
       }
     }
+    for (const key of this.immortalKeys) {
+      yield key
+    }
   }
   *values() {
     for (const exp in this.expirations) {
       for (const key of this.expirations[exp] as K[]) {
         yield this.data.get(key) as V
       }
+    }
+    for (const key of this.immortalKeys) {
+      yield this.data.get(key) as V
     }
   }
   [Symbol.iterator]() {

@@ -2,6 +2,8 @@
 
 - Add `updateAgeOnHas` and `checkAgeOnHas` options to match
   corresponding `get()` options.
+- Include items with `Infinity` expirations in iterations like
+  `entries()`, `keys()`, `values()`.
 
 ## 2.0
 
