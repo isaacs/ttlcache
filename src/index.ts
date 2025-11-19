@@ -239,9 +239,10 @@ export class TTLCache<K = unknown, V = unknown> {
       }
       // has old value
       const oldValue = this.data.get(key)
+      const disp = !noDisposeOnSet && this.data.has(key)
       if (oldValue !== val) {
         this.data.set(key, val)
-        if (!noDisposeOnSet) {
+        if (disp) {
           this.dispose(oldValue as V, key, 'set')
         }
       }
