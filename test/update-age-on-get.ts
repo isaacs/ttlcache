@@ -1,6 +1,7 @@
 import { TTLCache } from '@isaacs/ttlcache'
 
 import t from 'tap'
+t.clock.enter()
 
 const disposes: unknown[][] = []
 
