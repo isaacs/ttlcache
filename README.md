@@ -59,7 +59,7 @@ timer in this way will of course prevent anything from expiring.
 
 ## API
 
-### `const { TTLCache } = require('@isaacs/ttlcache')` or `import TTLCache from '@isaacs/ttlcache'`
+### `const { TTLCache } = require('@isaacs/ttlcache')` or `import { TTLCache } from '@isaacs/ttlcache'`
 
 The `TTLCache` class is a named export.
 
