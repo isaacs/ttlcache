@@ -3,19 +3,22 @@
 // Relies on the fact that integer Object keys are kept sorted,
 // and managed very efficiently by V8.
 
+//oxlint-disable eslint/guard-for-in
 /* c8 ignore start */
 const perf =
-  typeof performance === 'object' &&
-  performance &&
-  typeof performance.now === 'function'
-    ? performance
-    : Date
+  (
+    typeof performance === 'object' &&
+    performance &&
+    typeof performance.now === 'function'
+  ) ?
+    performance
+  : Date
 /* c8 ignore stop */
 
 const now = () => perf.now()
-const isPosInt = (n: any): n is number =>
-  !!n && n === Math.floor(n) && n > 0 && isFinite(n)
-const isPosIntOrInf = (n: any): n is number =>
+const isPosInt = (n: unknown): n is number =>
+  !!n && n === Math.floor(n as number) && n > 0 && isFinite(n)
+const isPosIntOrInf = (n: unknown): n is number =>
   n === Infinity || isPosInt(n)
 
 export type DisposeReason = 'set' | 'delete' | 'stale' | 'evict'
@@ -26,7 +29,7 @@ export type DisposeFunction<K, V> = (
   reason: DisposeReason,
 ) => unknown
 
-const TIMER_MAX: TimeInMilliseconds = 2**31 - 1
+const TIMER_MAX: TimeInMilliseconds = 2 ** 31 - 1
 
 export type TimeInMilliseconds = number
 
@@ -191,7 +194,7 @@ export class TTLCache<K = unknown, V = unknown> {
     // no need for any purging now
     this.cancelTimer()
     this.expirations = Object.create(null)
-    for (const [key, val] of entries as [K, V][]) {
+    for (const [key, val] of entries) {
       this.dispose(val, key, 'delete')
     }
   }
@@ -283,11 +286,12 @@ export class TTLCache<K = unknown, V = unknown> {
 
   getRemainingTTL(key: K) {
     const expiration = this.expirationMap.get(key)
-    return expiration === Infinity
-      ? expiration
-      : expiration !== undefined
-        ? Math.max(0, Math.ceil(expiration - now()))
-        : 0
+    return (
+      expiration === Infinity ? expiration
+      : expiration !== undefined ?
+        Math.max(0, Math.ceil(expiration - now()))
+      : 0
+    )
   }
 
   get(

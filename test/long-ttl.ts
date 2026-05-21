@@ -17,9 +17,8 @@ cache.set('b', 2, {
   ttl: 1000 * 60 * 60 * 24 * 30 * 2,
 })
 
-
 t.strictSame([...cache.keys()], ['a', 'b'])
-t.clock.advance(2**31 - 1)
+t.clock.advance(2 ** 31 - 1)
 t.strictSame([...cache.keys()], ['a', 'b'])
 t.clock.advance(1000)
 t.strictSame([...cache.keys()], ['a', 'b'])

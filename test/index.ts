@@ -3,14 +3,13 @@ import t, { type Test } from 'tap'
 const clock = t.clock
 t.teardown(clock.enter())
 
-const { TTLCache } = await t.mockImport<
-  typeof import('@isaacs/ttlcache')
->('@isaacs/ttlcache')
+const { TTLCache } =
+  await t.mockImport<typeof import('@isaacs/ttlcache')>('@isaacs/ttlcache')
 
 const floor = (t: Test, n: number, e: number, msg?: string) =>
-  msg
-    ? t.equal(Math.floor(n), Math.floor(e), msg)
-    : t.equal(Math.floor(n), Math.floor(e))
+  msg ?
+    t.equal(Math.floor(n), Math.floor(e), msg)
+  : t.equal(Math.floor(n), Math.floor(e))
 
 t.test('use date if performance unavailable', async t => {
   // @ts-ignore
@@ -201,8 +200,7 @@ t.test('iterators', async t => {
 
 t.test('clear', async t => {
   const disposals: [number, number, string][] = []
-  const dispose = (...a: [number, number, string]) =>
-    disposals.push(a)
+  const dispose = (...a: [number, number, string]) => disposals.push(a)
   const c = new TTLCache({ ttl: 10, dispose })
   for (let i = 0; i < 3; i++) {
     c.set(i, i * 2)
@@ -250,27 +248,24 @@ t.test('ctor ok with no argument', async t => {
   t.match(c, { ttl: undefined })
 })
 
-t.test(
-  'validate the TTL even if the timer has not fired',
-  async t => {
-    const c = new TTLCache<number, number>({
-      ttl: 10,
-      checkAgeOnGet: true,
-      checkAgeOnHas: true,
-    })
-    c.set(1, 1)
-    c.set(2, 2)
-    t.equal(c.get(1), 1)
-    c.cancelTimer()
-    clock.advance(1000)
-    t.equal(c.size, 2)
-    t.equal(c.get(1, { checkAgeOnGet: false }), 1)
-    t.equal(c.has(2, { checkAgeOnHas: false }), true)
-    t.equal(c.get(1), undefined)
-    t.equal(c.size, 1)
-    t.equal(c.has(2), false)
-    t.equal(c.size, 0)
-    t.equal(c.get(1, { checkAgeOnGet: false }), undefined)
-    t.equal(c.has(2, { checkAgeOnHas: false }), false)
-  },
-)
+t.test('validate the TTL even if the timer has not fired', async t => {
+  const c = new TTLCache<number, number>({
+    ttl: 10,
+    checkAgeOnGet: true,
+    checkAgeOnHas: true,
+  })
+  c.set(1, 1)
+  c.set(2, 2)
+  t.equal(c.get(1), 1)
+  c.cancelTimer()
+  clock.advance(1000)
+  t.equal(c.size, 2)
+  t.equal(c.get(1, { checkAgeOnGet: false }), 1)
+  t.equal(c.has(2, { checkAgeOnHas: false }), true)
+  t.equal(c.get(1), undefined)
+  t.equal(c.size, 1)
+  t.equal(c.has(2), false)
+  t.equal(c.size, 0)
+  t.equal(c.get(1, { checkAgeOnGet: false }), undefined)
+  t.equal(c.has(2, { checkAgeOnHas: false }), false)
+})

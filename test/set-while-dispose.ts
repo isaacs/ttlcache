@@ -2,9 +2,8 @@ import t from 'tap'
 const clock = t.clock
 clock.enter()
 
-const { TTLCache } = await t.mockImport<
-  typeof import('@isaacs/ttlcache')
->('@isaacs/ttlcache')
+const { TTLCache } =
+  await t.mockImport<typeof import('@isaacs/ttlcache')>('@isaacs/ttlcache')
 
 t.test('eviction', async t => {
   let didReSet = false

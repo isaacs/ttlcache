@@ -3,9 +3,8 @@ import t from 'tap'
 const clock = t.clock
 t.teardown(clock.enter())
 
-const { TTLCache } = await t.mockImport<
-  typeof import('@isaacs/ttlcache')
->('@isaacs/ttlcache')
+const { TTLCache } =
+  await t.mockImport<typeof import('@isaacs/ttlcache')>('@isaacs/ttlcache')
 
 const c = new TTLCache({ ttl: Infinity })
 c.set(1, 1, { ttl: Infinity })
