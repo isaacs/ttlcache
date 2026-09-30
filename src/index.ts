@@ -307,7 +307,7 @@ export class TTLCache<K = unknown, V = unknown> {
       this.delete(key)
       return undefined
     }
-    if (updateAgeOnGet) {
+    if (updateAgeOnGet && this.data.has(key)) {
       this.setTTL(key, ttl)
     }
     return val
